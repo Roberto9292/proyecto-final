@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useCategories } from "../hooks/useCategories";
 import { api } from "../lib/api";
 import { showToast } from "../components/Toast";
 
@@ -9,19 +10,24 @@ interface Todo {
   description: string | null;
   completed: boolean;
   dueDate: string | null;
+  categoryId: string | null;
 }
 
 export default function TodosPage() {
   const { token } = useAuth();
+  const { categories } = useCategories();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [filterCategoryId, setFilterCategoryId] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
+  const [editCategoryId, setEditCategoryId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
@@ -51,12 +57,14 @@ export default function TodosPage() {
           title: title.trim(),
           description: description.trim() || undefined,
           dueDate: dueDate || undefined,
+          categoryId: categoryId || undefined,
         },
         token,
       });
       setTitle("");
       setDescription("");
       setDueDate("");
+      setCategoryId("");
       showToast("Tarea creada", "success");
       load();
     } catch (err) {
@@ -94,6 +102,7 @@ export default function TodosPage() {
     setEditTitle(todo.title);
     setEditDescription(todo.description ?? "");
     setEditDueDate(todo.dueDate ? todo.dueDate.split("T")[0] : "");
+    setEditCategoryId(todo.categoryId ?? "");
   };
 
   const handleSave = async () => {
@@ -105,6 +114,7 @@ export default function TodosPage() {
           title: editTitle.trim(),
           description: editDescription.trim() || undefined,
           dueDate: editDueDate || null,
+          categoryId: editCategoryId || null,
         },
         token,
       });
@@ -120,8 +130,15 @@ export default function TodosPage() {
     return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
   };
 
-  const completed = todos.filter((t) => t.completed).length;
-  const total = todos.length;
+  const categoryById = (id: string | null) =>
+    categories.find((category) => category.id === id);
+
+  const visibleTodos = filterCategoryId
+    ? todos.filter((todo) => todo.categoryId === filterCategoryId)
+    : todos;
+
+  const completed = visibleTodos.filter((t) => t.completed).length;
+  const total = visibleTodos.length;
 
   return (
     <div>
@@ -132,6 +149,18 @@ export default function TodosPage() {
             {completed} de {total} completadas
           </p>
         </div>
+        <select
+          value={filterCategoryId}
+          onChange={(e) => setFilterCategoryId(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Todas las categorías</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <form onSubmit={handleCreate} className="mb-6 flex gap-3 items-end">
@@ -162,6 +191,20 @@ export default function TodosPage() {
             className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <div className="w-40 flex flex-col gap-1">
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Sin categoría</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           type="submit"
           disabled={submitting || !title.trim()}
@@ -173,13 +216,13 @@ export default function TodosPage() {
 
       {loading ? (
         <p className="text-sm text-gray-500">Cargando...</p>
-      ) : todos.length === 0 ? (
+      ) : visibleTodos.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-12">
-          No hay tareas aún
+          {filterCategoryId ? "No hay tareas en esta categoría" : "No hay tareas aún"}
         </p>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
-          {todos.map((todo) => (
+          {visibleTodos.map((todo) => (
             <div
               key={todo.id}
               className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50"
@@ -223,6 +266,18 @@ export default function TodosPage() {
                     }}
                     className="w-full px-2 py-1 border border-blue-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <select
+                    value={editCategoryId}
+                    onChange={(e) => setEditCategoryId(e.target.value)}
+                    className="w-full px-2 py-1 border border-blue-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Sin categoría</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                   <div className="flex gap-2">
                     <button
                       onClick={handleSave}
@@ -264,6 +319,17 @@ export default function TodosPage() {
                     </svg>
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
+                    {categoryById(todo.categoryId) && (
+                      <span
+                        className="text-xs px-1.5 py-0.5 rounded text-white"
+                        style={{
+                          backgroundColor:
+                            categoryById(todo.categoryId)?.color ?? "#6B7280",
+                        }}
+                      >
+                        {categoryById(todo.categoryId)?.name}
+                      </span>
+                    )}
                     {todo.description && (
                       <p className="text-xs text-gray-400">
                         {todo.description}
