@@ -1,9 +1,5 @@
-// Datos de demostración: 5 usuarios, 10 categorías y 20 tareas. Idempotente.
-//
-// CommonJS y no TypeScript para poder correr en la imagen de producción, que
-// se instala con --prod y por lo tanto no tiene tsx.
-//
-//   docker compose exec -w /app/packages/backend backend node prisma/seed-demo.js
+// Datos de demostración: 5 usuarios, 10 categorías y 20 tareas.
+// En CommonJS porque la imagen de producción se instala con --prod y no tiene tsx.
 
 require('dotenv/config');
 
@@ -33,12 +29,8 @@ const { PrismaClient } = loadPrismaClient();
 const adapter = new PrismaPg(process.env.DATABASE_URL);
 const prisma = new PrismaClient({ adapter });
 
-// Cada usuario tiene su propia contraseña, `<key>123`, para poder entrar con
-// cualquiera de ellos y ver la aplicación desde distintos roles.
 const passwordFor = (key) => `${key}123`;
 
-// Desplazamiento en días desde la corrida, para que siempre haya vencimientos
-// pasados y futuros en vez de quedar todo vencido con el tiempo.
 const day = 24 * 60 * 60 * 1000;
 const inDays = (n) => new Date(Date.now() + n * day);
 
@@ -64,8 +56,7 @@ const CATEGORIES = [
   { key: 'proyectos', name: 'Proyectos', color: '#059669', owner: 'diego'  },
 ];
 
-// 10 completadas y 10 pendientes. Dos —una de cada estado— van sin description,
-// dueDate ni categoría, para ejercitar los campos opcionales.
+// Dos tareas van sin description, dueDate ni categoría: los tres son opcionales.
 const TODOS = [
   { owner: 'admin',  category: 'trabajo',   completed: true,  dueIn: -6,  title: 'Preparar informe trimestral',            description: 'Consolidar métricas de los tres meses y dejarlo listo para la reunión de directorio.' },
   { owner: 'admin',  category: 'trabajo',   completed: false, dueIn: 4,   title: 'Revisar presupuesto del equipo',         description: 'Comparar lo ejecutado contra lo proyectado y marcar los desvíos.' },
@@ -104,8 +95,6 @@ async function main() {
 
   const userIds = {};
   for (const user of USERS) {
-    // La contraseña se reescribe en cada corrida: la semilla define el estado
-    // completo de la demo, contraseñas incluidas.
     const password = await hash(passwordFor(user.key));
     const row = await prisma.user.upsert({
       where: { email: user.email },

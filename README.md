@@ -31,20 +31,14 @@ Cada uno entra con su nombre seguido de `123`:
 | `sofia.aguirre@gmail.com` | `sofia123` | CLIENT | ACTIVE |
 | `diego.paredes@gmail.com` | `diego123` | CLIENT | BLOCKED |
 
-`admin` es el único que puede cambiar roles, bloquear usuarios y eliminarlos.
-`diego` está bloqueado a propósito: sus credenciales son correctas pero el login
-responde `401`, que es como se comporta el campo `status`.
+Los datos salen de `packages/backend/prisma/seed-demo.js`: 10 categorías y 20
+tareas repartidas entre esos usuarios. `diego` está bloqueado a propósito, así
+que su login responde `401` aunque la contraseña sea correcta.
 
-Todo entra por el puerto 80: nginx sirve el frontend en `/`, la API en `/api/` y
-Swagger en `/docs`. Los puertos de los servicios no están expuestos a internet.
-
-`/api` es el prefijo de los endpoints (`/api/auth/login`, `/api/categories`,
-`/api/todo`, `/api/users`), no una página: abrirlo en el navegador devuelve 404.
-Para probar la API conviene usar Swagger, que ya trae el botón *Authorize* para
-pegar el token.
-
-La base tiene datos de prueba cargados con `packages/backend/prisma/seed-demo.js`:
-5 usuarios, 10 categorías y 20 tareas.
+nginx sirve todo por el puerto 80 —el frontend en `/`, Swagger en `/docs` y la
+API en `/api/`— y los puertos de los servicios no se exponen a internet. `/api`
+es el prefijo de los endpoints, no una página, así que para probarlos conviene
+Swagger, que trae el botón *Authorize*.
 
 El trabajo del proyecto final está en la rama `feature/final-project-categories`.
 `main` conserva la base del repositorio original, de modo que el Pull Request
@@ -64,7 +58,7 @@ todo-backend/
 
 ## Requisitos previos
 
-- Node.js >= 18
+- Node.js >= 22 (lo exige pnpm 11)
 - pnpm
 - PostgreSQL corriendo localmente
 - MongoDB corriendo localmente (servicio de notificaciones)
@@ -147,19 +141,17 @@ sobrescribe nada: si el usuario ya existe, avisa y termina.
 
 ### Datos de prueba
 
-Para tener la aplicación poblada hay una segunda semilla con 5 usuarios, 10
-categorías y 20 tareas —10 completadas y 10 pendientes—. Son las credenciales
-de [Usuarios de prueba](#usuarios-de-prueba): cada uno entra con su nombre
-seguido de `123`.
+Una segunda semilla deja la aplicación poblada con 5 usuarios, 10 categorías y
+20 tareas —10 completadas y 10 pendientes—, con las credenciales de
+[Usuarios de prueba](#usuarios-de-prueba):
 
 ```bash
 pnpm --filter todo-backend build   # compila el cliente de Prisma que usa
 pnpm --filter todo-backend exec node prisma/seed-demo.js
 ```
 
-A diferencia del seed anterior, este define el estado completo de la demo:
-reescribe las contraseñas y reemplaza las tareas de esos cinco usuarios en cada
-corrida, de modo que el resultado siempre es el mismo conjunto.
+Se puede repetir: reescribe las contraseñas y reemplaza las tareas de esos cinco
+usuarios, así que siempre deja el mismo conjunto.
 
 ## Scripts disponibles
 
