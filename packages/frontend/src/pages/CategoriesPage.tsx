@@ -12,6 +12,7 @@ import IconButton from "../components/ui/IconButton";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
 import ColorSwatch from "../components/ui/ColorSwatch";
+import InlineEdit from "../components/ui/InlineEdit";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
@@ -57,6 +58,19 @@ export default function CategoriesPage() {
     } else {
       await create(input);
       showToast("Categoría creada", "success");
+    }
+  };
+
+  const handleRename = async (category: Category, name: string) => {
+    try {
+      await update(category.id, { name });
+      showToast("Categoría actualizada", "success");
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : "Error al renombrar",
+        "error",
+      );
+      throw err;
     }
   };
 
@@ -136,9 +150,12 @@ export default function CategoriesPage() {
                   <Cell>
                     <div className="flex items-center gap-3">
                       <ColorSwatch color={category.color} name={category.name} />
-                      <span className="font-medium text-gray-900">
-                        {category.name}
-                      </span>
+                      <InlineEdit
+                        value={category.name}
+                        label={`el nombre de ${category.name}`}
+                        className="font-medium text-gray-900"
+                        onSave={(name) => handleRename(category, name)}
+                      />
                     </div>
                   </Cell>
                   <Cell>

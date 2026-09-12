@@ -13,6 +13,7 @@ import IconButton from "../components/ui/IconButton";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
 import StatusPill from "../components/ui/StatusPill";
+import InlineEdit from "../components/ui/InlineEdit";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
@@ -91,6 +92,19 @@ export default function TodosPage() {
     } else {
       await create(input);
       showToast("Tarea creada", "success");
+    }
+  };
+
+  const handleRename = async (todo: Todo, title: string) => {
+    try {
+      await update(todo.id, { title });
+      showToast("Tarea actualizada", "success");
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : "Error al renombrar",
+        "error",
+      );
+      throw err;
     }
   };
 
@@ -246,15 +260,16 @@ export default function TodosPage() {
                   <Row key={todo.id}>
                     <Cell>
                       <div className="min-w-0">
-                        <p
+                        <InlineEdit
+                          value={todo.title}
+                          label={`el título de ${todo.title}`}
                           className={`font-medium ${
                             todo.completed
                               ? "text-gray-400 line-through"
                               : "text-gray-900"
                           }`}
-                        >
-                          {todo.title}
-                        </p>
+                          onSave={(title) => handleRename(todo, title)}
+                        />
                         {todo.description && (
                           <p className="mt-0.5 max-w-md truncate text-xs text-gray-500">
                             {todo.description}
