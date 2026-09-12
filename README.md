@@ -8,6 +8,7 @@ Proyecto de tareas construido como monorepo con **pnpm workspaces**.
 todo-backend/
 ├── packages/
 │   ├── backend/        # NestJS + Prisma + PostgreSQL (DDD)
+│   ├── notification/   # NestJS + Mongoose + Socket.io (notificaciones)
 │   └── frontend/       # React 19 + Tailwind CSS v4 + Vite
 ├── package.json        # Root workspace config
 └── pnpm-workspace.yaml
@@ -18,6 +19,7 @@ todo-backend/
 - Node.js >= 18
 - pnpm
 - PostgreSQL corriendo localmente
+- MongoDB corriendo localmente (servicio de notificaciones)
 
 ## Instalación
 
@@ -35,6 +37,7 @@ Cada package tiene su propio `.env`. Copia los samples:
 
 ```bash
 cp packages/backend/.env.sample packages/backend/.env
+cp packages/notification/.env.sample packages/notification/.env
 cp packages/frontend/.env.sample packages/frontend/.env
 ```
 
@@ -42,19 +45,31 @@ cp packages/frontend/.env.sample packages/frontend/.env
 
 ```bash
 # Backend (puerto 3050)
-pnpm --filter todo-backend dev
+pnpm --filter todo-backend start:dev
+
+# Notificaciones (puerto 3060)
+pnpm --filter notification-service start:dev
 
 # Frontend (puerto 3040)
 pnpm --filter todo-frontend dev
+```
+
+También se puede levantar todo el entorno con Docker Compose (ver `docs/DEPLOY.md`):
+
+```bash
+docker compose up --build
 ```
 
 ## Scripts disponibles
 
 | Comando | Descripción |
 |---------|-------------|
-| `pnpm --filter todo-backend dev` | Iniciar backend en desarrollo |
+| `pnpm --filter todo-backend start:dev` | Iniciar backend en desarrollo |
 | `pnpm --filter todo-backend build` | Build del backend |
 | `pnpm --filter todo-backend test` | Tests del backend |
+| `pnpm --filter todo-backend lint` | Lint del backend |
+| `pnpm --filter notification-service start:dev` | Iniciar notificaciones en desarrollo |
+| `pnpm --filter notification-service test` | Tests del servicio de notificaciones |
 | `pnpm --filter todo-frontend dev` | Iniciar frontend en desarrollo |
 | `pnpm --filter todo-frontend build` | Build del frontend |
 
@@ -62,17 +77,24 @@ pnpm --filter todo-frontend dev
 
 ### Backend (`packages/backend`)
 
-- **Stack:** NestJS 11 + Prisma 7 + PostgreSQL
+- **Stack:** NestJS 12 + Prisma 7 + PostgreSQL
 - **Arquitectura:** DDD (Domain-Driven Design) con Hexagonal Architecture
-- **Auth:** JWT + Argon2id + Passport
+- **Auth:** JWT + Argon2id + Passport, con guard de roles para endpoints de admin
 - **Docs:** Swagger en `http://localhost:3050/docs`
-- **Tests:** Jest (31 tests, 7 suites)
+- **Tests:** Jest (66 tests, 9 suites)
+
+### Notification (`packages/notification`)
+
+- **Stack:** NestJS 12 + Mongoose + MongoDB
+- **Tiempo real:** Socket.io, sala por usuario (`user:<id>`)
+- **Docs:** Swagger en `http://localhost:3060/docs`
+- **Puerto:** 3060
 
 ### Frontend (`packages/frontend`)
 
 - **Stack:** React 19 + Tailwind CSS v4 + Vite
 - **Routing:** React Router v7
-- **Pantallas:** Login, CRUD Usuarios, CRUD Tareas
+- **Pantallas:** Login, CRUD Usuarios, CRUD Tareas, CRUD Categorías
 - **Puerto:** 3040
 
 ## Arquitectura del Monorepo
@@ -81,15 +103,22 @@ pnpm --filter todo-frontend dev
 AppModule (NestJS)
 ├── PrismaModule (@Global)
 ├── ContextsModule
-│   ├── TasksModule → TodoModule
+│   ├── TasksModule
+│   │   ├── TodoModule
+│   │   └── CategoryModule
 │   └── IdentityAccessModule
 │       ├── UserModule
 │       └── AuthModule
 └── AppsModule
     └── ApiModule
         ├── AuthController (POST /auth/login)
-        ├── UserController (GET/POST /users)
-        └── TodoController (GET/POST/PATCH/DELETE /todo)
+        ├── UserController (GET/POST /users, GET/PATCH/DELETE /users/:id)
+        ├── TodoController (GET/POST/PATCH/DELETE /todo)
+        └── CategoryController (GET/POST/PATCH/DELETE /categories)
+
+El puerto de notificaciones (`NotificationPort`) vive en `src/shared/domain` y su
+adaptador HTTP en `src/shared/infrastructure/notification`, para que ningún bounded
+context dependa de otro.
 ```
 
 ## Recursos
