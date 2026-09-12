@@ -9,6 +9,9 @@ export interface Toast {
 
 let globalAddToast: ((msg: string, type: Toast["type"]) => void) | null = null;
 
+// No usar crypto.randomUUID(): solo existe en contextos seguros (HTTPS o localhost).
+let nextToastId = 0;
+
 export function showToast(message: string, type: Toast["type"] = "info") {
   globalAddToast?.(message, type);
 }
@@ -17,7 +20,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((message: string, type: Toast["type"]) => {
-    const id = crypto.randomUUID();
+    const id = String(++nextToastId);
     setToasts((prev) => [...prev, { id, message, type }]);
   }, []);
 
