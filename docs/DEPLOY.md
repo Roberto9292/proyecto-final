@@ -60,13 +60,13 @@ docker compose down -v
 ### Qué hace cada servicio en el compose
 
 **postgres** — PostgreSQL 16 con volumen persistente:
-- Puerto 5432 expuesto
+- Puerto 5432 publicado solo en `127.0.0.1`, no en la red pública
 - Crea la DB `todo` automáticamente
 - Healthcheck con `pg_isready`
 - No necesita migraciones manuales — Prisma las aplica al iniciar el backend
 
 **mongodb** — MongoDB 8 con volumen persistente:
-- Puerto 27017 expuesto
+- Puerto 27017 publicado solo en `127.0.0.1`, no en la red pública
 - Crea la DB `notifications` al primer insert (schema-less)
 - Healthcheck con `mongosh`
 
@@ -623,6 +623,22 @@ Dos detalles que suelen costar una tarde de depuración:
 
 El frontend se compila con `PUBLIC_HOST` incrustado, así que **si esa IP cambia hay
 que reconstruir la imagen**, no alcanza con reiniciar el contenedor.
+
+### Por qué las bases no publican puerto hacia afuera
+
+`ports: "5432:5432"` asocia el puerto a todas las interfaces, así que en una
+instancia con IP pública deja la base accesible desde internet. MongoDB además
+corre sin autenticación: bastaría con que alguien escanee el 27017 para leer y
+escribir la base de notificaciones.
+
+Los servicios no necesitan ese puerto: se alcanzan entre ellos por la red
+interna de compose usando el nombre del servicio (`postgres`, `mongodb`). El
+puerto queda publicado en `127.0.0.1` únicamente, de modo que sigue disponible
+para inspeccionar la base desde la propia instancia o por un túnel SSH:
+
+```bash
+ssh -L 5432:localhost:5432 ec2-user@IP_PUBLICA
+```
 
 ### Cómo llegan los secretos a los contenedores
 

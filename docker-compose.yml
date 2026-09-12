@@ -1,43 +1,50 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: "${POSTGRES_USER:?falta POSTGRES_USER en el .env, copialo de .env.sample}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en el .env, copialo de .env.sample}"
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       POSTGRES_DB: ${POSTGRES_DB:-todo}
+    # Solo accesible desde la propia máquina: los servicios se conectan por la
+    # red interna de compose, no por el puerto publicado.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   mongodb:
     image: mongo:8
+    restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongodata:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.runCommand({ping:1})"]
-      interval: 5s
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1})"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   backend:
     build:
       context: .
       dockerfile: packages/backend/Dockerfile
+    restart: unless-stopped
     ports:
       - "3050:3050"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3050
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-todo}?schema=public
-      JWT_SECRET: "${JWT_SECRET:?falta JWT_SECRET en el .env, generalo con openssl rand -hex 32}"
+      JWT_SECRET: ${JWT_SECRET:?}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       NOTIFICATION_SERVICE_URL: http://notification:3060
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3040}
@@ -45,12 +52,19 @@ services:
       postgres:
         condition: service_healthy
       notification:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3050/docs').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   notification:
     build:
       context: .
       dockerfile: packages/notification/Dockerfile
+    restart: unless-stopped
     ports:
       - "3060:3060"
     environment:
@@ -60,6 +74,12 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3060/docs').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   frontend:
     build:
@@ -68,11 +88,20 @@ services:
       args:
         VITE_API_BASE: http://${PUBLIC_HOST:-localhost}:3050
         VITE_WS_URL: ws://${PUBLIC_HOST:-localhost}:3060
+    restart: unless-stopped
     ports:
       - "3040:3040"
     depends_on:
-      - backend
-      - notification
+      backend:
+        condition: service_started
+      notification:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3040"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   pgdata:
