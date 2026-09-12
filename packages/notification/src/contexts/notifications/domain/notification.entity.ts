@@ -2,6 +2,7 @@ export enum NotificationType {
   TASK_CREATED = 'TASK_CREATED',
   TASK_COMPLETED = 'TASK_COMPLETED',
   TASK_DUE_SOON = 'TASK_DUE_SOON',
+  USER_CREATED = 'USER_CREATED',
 }
 
 export class Notification {

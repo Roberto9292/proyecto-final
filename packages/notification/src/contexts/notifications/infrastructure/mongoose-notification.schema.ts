@@ -8,7 +8,10 @@ export class NotificationSchema {
   @Prop({ required: true })
   userId: string;
 
-  @Prop({ required: true, enum: ['TASK_CREATED', 'TASK_COMPLETED', 'TASK_DUE_SOON'] })
+  @Prop({
+    required: true,
+    enum: ['TASK_CREATED', 'TASK_COMPLETED', 'TASK_DUE_SOON', 'USER_CREATED'],
+  })
   type: string;
 
   @Prop({ required: true })

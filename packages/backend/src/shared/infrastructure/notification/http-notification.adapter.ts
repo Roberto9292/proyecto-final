@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   NotificationPort,
   SendNotificationData,
-} from '../domain/notification.port';
+} from '../../domain/notification.port';
 
 @Injectable()
 export class HttpNotificationAdapter implements NotificationPort {

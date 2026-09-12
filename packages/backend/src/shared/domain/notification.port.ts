@@ -1,6 +1,6 @@
 export interface SendNotificationData {
   userId: string;
-  type: 'TASK_CREATED' | 'TASK_COMPLETED' | 'TASK_DUE_SOON';
+  type: 'TASK_CREATED' | 'TASK_COMPLETED' | 'TASK_DUE_SOON' | 'USER_CREATED';
   title: string;
   message: string;
   metadata?: Record<string, unknown>;
