@@ -25,7 +25,7 @@ describe('UserService', () => {
 
   const admin: AuthenticatedUser = {
     id: 'admin-id',
-    email: 'admin@todo.com',
+    email: 'admin@gmail.com',
     role: 'ADMIN',
   };
 

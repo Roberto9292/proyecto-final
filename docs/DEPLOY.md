@@ -380,7 +380,7 @@ async function main() {
   console.log('Migrations applied!');
   
   const argon2 = require('/app/node_modules/.pnpm/argon2@0.45.1/node_modules/argon2');
-  const email = 'admin@todo.com';
+  const email = 'admin@gmail.com';
   const password = 'admin123';
   
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -404,7 +404,7 @@ docker compose exec backend node packages/backend/migrate-and-seed.js
 ```
 
 Credenciales del admin:
-- Email: `admin@todo.com`
+- Email: `admin@gmail.com`
 - Password: `admin123`
 
 ### Paso 8: Configurar subdominios (producción)
@@ -692,4 +692,4 @@ El job `deploy` del CI necesita dos secretos en
 - [ ] `docker compose ps` — todos los servicios corriendo
 - [ ] Prisma migrate ejecutado — migraciones + seed
 - [ ] nginx instalado y configurado — `curl http://IP_PUBLICA/` devuelve HTML
-- [ ] Login funciona — `curl http://IP_PUBLICA/api/auth/login -X POST -d '{"email":"admin@todo.com","password":"admin123"}'`
+- [ ] Login funciona — `curl http://IP_PUBLICA/api/auth/login -X POST -d '{"email":"admin@gmail.com","password":"admin123"}'`

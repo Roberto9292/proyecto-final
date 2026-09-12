@@ -72,6 +72,31 @@ También se puede levantar todo el entorno con Docker Compose (ver `docs/DEPLOY.
 docker compose up --build
 ```
 
+## Base de datos inicial
+
+Las migraciones crean las tablas y el seed carga un usuario administrador:
+
+```bash
+pnpm --filter todo-backend exec prisma migrate deploy
+pnpm --filter todo-backend seed
+```
+
+| | |
+|---|---|
+| Email | `admin@gmail.com` |
+| Contraseña | `admin123` |
+| Rol | `ADMIN` |
+
+Es la única cuenta con permiso para cambiar roles, bloquear usuarios y
+eliminarlos. Los usuarios que se crean desde `POST /users` o desde la pantalla
+de Usuarios nacen con rol `CLIENT`, que es el valor por defecto del modelo.
+
+La contraseña se guarda con Argon2id, nunca en texto plano. El seed no
+sobrescribe nada: si el usuario ya existe, avisa y termina.
+
+> Son credenciales de desarrollo. Antes de exponer la aplicación hay que
+> cambiar la contraseña desde `PATCH /users/:id`.
+
 ## Scripts disponibles
 
 | Comando | Descripción |

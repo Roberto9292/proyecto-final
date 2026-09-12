@@ -24,7 +24,7 @@ describe('PrismaUserRepository', () => {
 
   const row = {
     id: '1',
-    email: 'admin@todo.com',
+    email: 'admin@gmail.com',
     name: 'Admin',
     password: '$argon2id$hash',
     role: 'ADMIN' as const,
@@ -65,7 +65,7 @@ describe('PrismaUserRepository', () => {
       expect(result).toEqual([
         new User(
           '1',
-          'admin@todo.com',
+          'admin@gmail.com',
           'Admin',
           '$argon2id$hash',
           'ADMIN',
@@ -85,10 +85,10 @@ describe('PrismaUserRepository', () => {
     it('looks the user up by email', async () => {
       prisma.user.findUnique.mockResolvedValue(row);
 
-      const result = await repository.findByEmail('admin@todo.com');
+      const result = await repository.findByEmail('admin@gmail.com');
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
-        where: { email: 'admin@todo.com' },
+        where: { email: 'admin@gmail.com' },
       });
       expect(result).toBeInstanceOf(User);
     });
@@ -109,7 +109,7 @@ describe('PrismaUserRepository', () => {
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: '1' },
       });
-      expect(result?.email).toBe('admin@todo.com');
+      expect(result?.email).toBe('admin@gmail.com');
     });
 
     it('returns null when the id does not exist', async () => {
@@ -123,7 +123,7 @@ describe('PrismaUserRepository', () => {
     it('persists the user and returns it as a domain entity', async () => {
       prisma.user.create.mockResolvedValue(row);
       const data = {
-        email: 'admin@todo.com',
+        email: 'admin@gmail.com',
         name: 'Admin',
         password: '$argon2id$hash',
         role: 'ADMIN' as const,
