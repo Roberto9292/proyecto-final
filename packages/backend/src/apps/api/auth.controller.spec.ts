@@ -31,7 +31,7 @@ describe('AuthController', () => {
     it('returns accessToken and user', async () => {
       const mockResult = {
         accessToken: 'jwt-token',
-        user: { id: '1', email: 'juan@test.com', role: 'CLIENT' },
+        user: { id: '1', email: 'juan@test.com', role: 'CLIENT' as const },
       };
       authService.login.mockResolvedValue(mockResult);
 

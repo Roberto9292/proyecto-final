@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { UserService } from './application/user.service';
+import { PasswordHasher } from './domain/password-hasher.port';
 import { UserRepository } from './domain/user.repository';
+import { Argon2PasswordHasher } from './infrastructure/argon2-password-hasher';
 import { PrismaUserRepository } from './infrastructure/prisma-user.repository';
-import { NotificationPort } from 'src/contexts/tasks/todo/domain/notification.port';
-import { HttpNotificationAdapter } from 'src/contexts/tasks/todo/infrastructure/http-notification.adapter';
+import { NotificationModule } from 'src/shared/infrastructure/notification/notification.module';
 
 @Module({
-  imports: [],
+  imports: [NotificationModule],
   providers: [
     UserService,
     {
@@ -14,10 +15,10 @@ import { HttpNotificationAdapter } from 'src/contexts/tasks/todo/infrastructure/
       useClass: PrismaUserRepository,
     },
     {
-      provide: NotificationPort,
-      useClass: HttpNotificationAdapter,
+      provide: PasswordHasher,
+      useClass: Argon2PasswordHasher,
     },
   ],
-  exports: [UserService, UserRepository],
+  exports: [UserService, UserRepository, PasswordHasher],
 })
 export class UserModule {}

@@ -1,13 +1,14 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PasswordHasher } from '../../user/domain/password-hasher.port';
 import { UserRepository } from '../../user/domain/user.repository';
 import { LoginDto } from './dto/login.dto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import * as argon2 from 'argon2';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
+    private readonly passwordHasher: PasswordHasher,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -17,9 +18,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const valid = await argon2.verify(user.password, dto.password);
+    const valid = await this.passwordHasher.verify(user.password, dto.password);
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.status === 'BLOCKED') {
+      throw new UnauthorizedException('User is blocked');
     }
 
     const payload = {

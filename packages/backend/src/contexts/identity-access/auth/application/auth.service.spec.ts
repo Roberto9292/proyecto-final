@@ -1,23 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service';
-import { UserRepository } from '../../user/domain/user.repository';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
-import * as argon2 from 'argon2';
+import { PasswordHasher } from '../../user/domain/password-hasher.port';
+import { User } from '../../user/domain/user.entity';
+import { UserRepository } from '../../user/domain/user.repository';
+import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let userRepository: jest.Mocked<UserRepository>;
-  let jwtService: jest.Mocked<JwtService>;
+  let passwordHasher: jest.Mocked<PasswordHasher>;
 
-  const mockUser = {
-    id: '1',
-    email: 'juan@test.com',
-    name: 'Juan',
-    password: 'hashed-password',
-    role: 'CLIENT' as const,
-    status: 'ACTIVE' as const,
-  };
+  const mockUser = new User(
+    '1',
+    'juan@test.com',
+    'Juan',
+    'hashed-password',
+    'CLIENT',
+    'ACTIVE',
+  );
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,6 +32,13 @@ describe('AuthService', () => {
           },
         },
         {
+          provide: PasswordHasher,
+          useValue: {
+            hash: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
           provide: JwtService,
           useValue: {
             sign: jest.fn().mockReturnValue('jwt-token'),
@@ -41,7 +49,7 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userRepository = module.get(UserRepository);
-    jwtService = module.get(JwtService);
+    passwordHasher = module.get(PasswordHasher);
   });
 
   it('should be defined', () => {
@@ -50,8 +58,8 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('returns accessToken and user on valid credentials', async () => {
-      userRepository.findByEmail.mockResolvedValue(mockUser as any);
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
+      userRepository.findByEmail.mockResolvedValue(mockUser);
+      passwordHasher.verify.mockResolvedValue(true);
 
       const result = await service.login({
         email: 'juan@test.com',
@@ -75,11 +83,28 @@ describe('AuthService', () => {
     });
 
     it('throws UnauthorizedException when password is invalid', async () => {
-      userRepository.findByEmail.mockResolvedValue(mockUser as any);
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      userRepository.findByEmail.mockResolvedValue(mockUser);
+      passwordHasher.verify.mockResolvedValue(false);
 
       await expect(
         service.login({ email: 'juan@test.com', password: 'wrong' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('throws UnauthorizedException when the user is blocked', async () => {
+      const blocked = new User(
+        '2',
+        'blocked@test.com',
+        'Blocked',
+        'hashed-password',
+        'CLIENT',
+        'BLOCKED',
+      );
+      userRepository.findByEmail.mockResolvedValue(blocked);
+      passwordHasher.verify.mockResolvedValue(true);
+
+      await expect(
+        service.login({ email: 'blocked@test.com', password: 'password123' }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });
