@@ -4,6 +4,7 @@ import Button from "../../components/ui/Button";
 import Field from "../../components/ui/Field";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
+import Textarea from "../../components/ui/Textarea";
 import type { Category } from "../../hooks/useCategories";
 import type { Todo, TodoInput } from "../../hooks/useTodos";
 
@@ -53,8 +54,7 @@ export default function TodoFormDialog({
     else if (title.trim().length > MAX_TITLE)
       found.title = `El título no puede exceder ${MAX_TITLE} caracteres`;
 
-    if (!description.trim()) found.description = "La descripción es requerida";
-    else if (description.trim().length > MAX_DESCRIPTION)
+    if (description.trim().length > MAX_DESCRIPTION)
       found.description = `La descripción no puede exceder ${MAX_DESCRIPTION} caracteres`;
 
     if (dueDate && Number.isNaN(new Date(dueDate).getTime()))
@@ -76,7 +76,7 @@ export default function TodoFormDialog({
     try {
       await onSubmit({
         title: title.trim(),
-        description: description.trim(),
+        description: description.trim() || undefined,
         dueDate: dueDate || null,
         categoryId: categoryId || null,
       });
@@ -94,7 +94,7 @@ export default function TodoFormDialog({
     <Modal
       open={open}
       title={todo ? "Editar tarea" : "Nueva tarea"}
-      description="El título y la descripción son requeridos."
+      description="Solo el título es requerido."
       onClose={onClose}
       footer={
         <>
@@ -148,16 +148,14 @@ export default function TodoFormDialog({
 
         <Field
           label="Descripción"
-          required
           error={errors.description}
-          hint={`${description.length}/${MAX_DESCRIPTION} caracteres`}
+          hint={`Opcional · ${description.length}/${MAX_DESCRIPTION} caracteres`}
         >
           {({ id, describedBy }) => (
-            <Input
+            <Textarea
               id={id}
               aria-describedby={describedBy}
               invalid={Boolean(errors.description)}
-              autoComplete="off"
               maxLength={MAX_DESCRIPTION}
               placeholder="Ej: Comprar pan en la panadería de la esquina"
               value={description}
