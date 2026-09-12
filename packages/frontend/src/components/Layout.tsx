@@ -135,8 +135,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         tone="neutral"
         icon="logout"
         title="Cerrar sesión"
-        message={`Vas a salir de la cuenta ${user?.email ?? ""}.`}
-        note="Tus tareas y categorías quedan guardadas. Vas a tener que volver a ingresar tus credenciales."
+        message="¿Estás seguro que deseas cerrar sesión?"
         confirmLabel="Cerrar sesión"
         onConfirm={logout}
         onCancel={() => setConfirmingLogout(false)}
