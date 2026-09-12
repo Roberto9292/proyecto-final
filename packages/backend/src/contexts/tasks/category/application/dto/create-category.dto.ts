@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsHexColor, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
+import { HEX_COLOR, HEX_COLOR_MESSAGE } from '../../domain/category-color';
 
 export class CreateCategoryDto {
   @ApiProperty({
@@ -13,8 +14,10 @@ export class CreateCategoryDto {
   @ApiPropertyOptional({
     description: 'Color de la categoría en formato hexadecimal',
     example: '#FF5733',
+    pattern: HEX_COLOR.source,
   })
-  @IsHexColor()
+  @IsString()
+  @Matches(HEX_COLOR, { message: HEX_COLOR_MESSAGE })
   @IsOptional()
   color?: string;
 }
