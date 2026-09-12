@@ -355,8 +355,26 @@ export default function TodosPage() {
       <ConfirmDialog
         open={Boolean(deleting)}
         title="Eliminar tarea"
-        message={`¿Seguro que querés eliminar "${deleting?.title}"?`}
-        note="Esta acción no se puede deshacer."
+        question="¿Estás seguro que deseas eliminar esta tarea?"
+        target={deleting?.title ?? ""}
+        targetMeta={
+          deleting && (
+            <>
+              <StatusPill
+                tone={deleting.completed ? "success" : "neutral"}
+                icon={deleting.completed ? "checkCircle" : "circle"}
+                label={deleting.completed ? "Completada" : "Pendiente"}
+              />
+              {categoryOf(deleting.categoryId) && (
+                <Badge color={categoryOf(deleting.categoryId)!.color}>
+                  {categoryOf(deleting.categoryId)!.name}
+                </Badge>
+              )}
+              {deleting.dueDate && <span>Vence {formatDate(deleting.dueDate)}</span>}
+            </>
+          )
+        }
+        consequence="Esta acción no se puede deshacer."
         loading={removing}
         onConfirm={handleDelete}
         onCancel={() => setDeleting(null)}

@@ -207,8 +207,19 @@ export default function UsersPage() {
       <ConfirmDialog
         open={Boolean(deleting)}
         title="Eliminar usuario"
-        message={`¿Seguro que querés eliminar a "${deleting?.email}"?`}
-        note="Se eliminarán también todas sus tareas y categorías. Esta acción no se puede deshacer."
+        question="¿Estás seguro que deseas eliminar este usuario?"
+        target={deleting?.email ?? ""}
+        targetMeta={
+          deleting && (
+            <>
+              <Badge tone={deleting.role === "ADMIN" ? "purple" : "neutral"}>
+                {deleting.role}
+              </Badge>
+              <span>{deleting.name ?? "Sin nombre"}</span>
+            </>
+          )
+        }
+        consequence="Se eliminarán también todas sus tareas y categorías. Esta acción no se puede deshacer."
         loading={removing}
         onConfirm={handleDelete}
         onCancel={() => setDeleting(null)}

@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import type { ReactNode } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
 import Icon from "./Icon";
@@ -8,8 +10,14 @@ type Tone = "danger" | "neutral";
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  message: string;
-  note?: string;
+  /** La pregunta, sin el nombre del registro dentro. */
+  question: string;
+  /** El registro afectado. Se destaca para que se vea qué se está por tocar. */
+  target?: string;
+  /** Dato secundario del registro: una categoría, un rol, cuántas tareas usa. */
+  targetMeta?: ReactNode;
+  /** Qué consecuencia tiene confirmar. */
+  consequence?: string;
   confirmLabel?: string;
   /** "danger" para lo que destruye datos, "neutral" para el resto. */
   tone?: Tone;
@@ -19,22 +27,24 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-const toneStyles: Record<Tone, { badge: string; note: string }> = {
+const toneStyles: Record<Tone, { badge: string; consequence: string }> = {
   danger: {
-    badge: "bg-red-100 text-red-600",
-    note: "border-amber-200 bg-amber-50 text-amber-800",
+    badge: "bg-red-50 text-red-600 ring-1 ring-inset ring-red-100",
+    consequence: "border-red-200 bg-red-50 text-red-700",
   },
   neutral: {
-    badge: "bg-blue-50 text-blue-600",
-    note: "border-gray-200 bg-gray-50 text-gray-600",
+    badge: "bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100",
+    consequence: "border-gray-200 bg-gray-50 text-gray-600",
   },
 };
 
 export default function ConfirmDialog({
   open,
   title,
-  message,
-  note,
+  question,
+  target,
+  targetMeta,
+  consequence,
   confirmLabel = "Eliminar",
   tone = "danger",
   icon,
@@ -42,6 +52,9 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  // El foco arranca en Cancelar: si arrancara en el botón que destruye, un
+  // Enter de más bastaría para confirmar sin haber leído nada.
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const styles = toneStyles[tone];
 
   return (
@@ -49,9 +62,15 @@ export default function ConfirmDialog({
       open={open}
       title={title}
       onClose={onCancel}
+      initialFocus={cancelRef}
       footer={
         <>
-          <Button variant="secondary" onClick={onCancel} disabled={loading}>
+          <Button
+            ref={cancelRef}
+            variant="secondary"
+            onClick={onCancel}
+            disabled={loading}
+          >
             Cancelar
           </Button>
           <Button
@@ -74,12 +93,29 @@ export default function ConfirmDialog({
           />
         </span>
 
-        <div className="space-y-3">
-          <p className="text-sm text-gray-700">{message}</p>
-          {note && (
-            <div role="note" className={`rounded-lg border p-3 ${styles.note}`}>
-              <p className="text-xs">{note}</p>
+        <div className="min-w-0 flex-1 space-y-3">
+          <p className="text-sm text-gray-700">{question}</p>
+
+          {target && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+              <p className="truncate text-sm font-semibold text-gray-900">
+                {target}
+              </p>
+              {targetMeta && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  {targetMeta}
+                </div>
+              )}
             </div>
+          )}
+
+          {consequence && (
+            <p
+              role="note"
+              className={`rounded-lg border px-3 py-2 text-xs ${styles.consequence}`}
+            >
+              {consequence}
+            </p>
           )}
         </div>
       </div>

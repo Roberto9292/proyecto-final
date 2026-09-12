@@ -209,12 +209,21 @@ export default function CategoriesPage() {
       <ConfirmDialog
         open={Boolean(deleting)}
         title="Eliminar categoría"
-        message={`¿Seguro que querés eliminar "${deleting?.name}"?`}
-        note={
+        question="¿Estás seguro que deseas eliminar esta categoría?"
+        target={deleting?.name ?? ""}
+        targetMeta={
+          deleting && (
+            <>
+              <ColorSwatch color={deleting.color} name={deleting.name} />
+              <span>{deleting.color ?? "Sin color"}</span>
+            </>
+          )
+        }
+        consequence={
           deleting && todoCountByCategory[deleting.id]
             ? `${todoCountByCategory[deleting.id]} ${
                 todoCountByCategory[deleting.id] === 1 ? "tarea" : "tareas"
-              } quedarán sin categoría. No se borran.`
+              } quedarán sin categoría. Las tareas no se borran.`
             : "Ninguna tarea está usando esta categoría."
         }
         loading={removing}
