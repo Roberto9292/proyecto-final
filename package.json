@@ -8,16 +8,5 @@
     "start:dev": "pnpm --filter todo-backend run start:dev",
     "test": "pnpm --filter todo-backend run test",
     "lint": "pnpm --filter todo-backend run lint"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/engines",
-      "prisma",
-      "@swc/core",
-      "esbuild",
-      "@parcel/watcher",
-      "argon2",
-      "unrs-resolver"
-    ]
   }
 }

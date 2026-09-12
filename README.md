@@ -26,10 +26,11 @@ todo-backend/
 ```bash
 # Instalar dependencias de todos los packages
 pnpm install
-
-# Aprobar builds nativos (argon2, esbuild, etc.)
-pnpm approve-builds argon2 esbuild @parcel/watcher @prisma/engines prisma unrs-resolver
 ```
+
+Los builds nativos (`argon2`, `esbuild`, `@prisma/engines`, etc.) ya están
+aprobados en `allowBuilds` de `pnpm-workspace.yaml`, así que no hace falta
+ejecutar `pnpm approve-builds`.
 
 ## Variables de entorno
 
