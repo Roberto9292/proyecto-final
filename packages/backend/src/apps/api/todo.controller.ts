@@ -14,6 +14,7 @@ import {
   ApiParam,
   ApiResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CreateTodoDto } from '../../contexts/tasks/todo/application/dto/create-todo.dto';
 import { UpdateTodoDto } from '../../contexts/tasks/todo/application/dto/update-todo.dto';
@@ -23,6 +24,7 @@ import { JwtAuthGuard } from 'src/contexts/identity-access/auth/infrastructure/j
 import { CurrentUser } from 'src/contexts/identity-access/auth/infrastructure/current-user.decorator';
 
 @ApiTags('Todo')
+@ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
 @ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard)
 @Controller('todo')

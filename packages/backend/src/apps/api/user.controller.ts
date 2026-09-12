@@ -18,6 +18,7 @@ import {
   ApiParam,
   ApiResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { AuthenticatedUser } from 'src/contexts/identity-access/auth/domain/authenticated-user';
 import { CurrentUser } from 'src/contexts/identity-access/auth/infrastructure/current-user.decorator';
@@ -29,6 +30,7 @@ import { UpdateUserDto } from 'src/contexts/identity-access/user/application/dto
 import { UserService } from 'src/contexts/identity-access/user/application/user.service';
 
 @ApiTags('Users')
+@ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
 @ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')

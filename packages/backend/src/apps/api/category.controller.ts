@@ -17,6 +17,7 @@ import {
   ApiParam,
   ApiResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CategoryService } from 'src/contexts/tasks/category/application/category.service';
 import { CreateCategoryDto } from 'src/contexts/tasks/category/application/dto/create-category.dto';
@@ -25,6 +26,7 @@ import { CurrentUser } from 'src/contexts/identity-access/auth/infrastructure/cu
 import { JwtAuthGuard } from 'src/contexts/identity-access/auth/infrastructure/jwt-auth.guard';
 
 @ApiTags('Categories')
+@ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
 @ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard)
 @Controller('categories')
