@@ -94,8 +94,13 @@ export default function TodosPage() {
   };
 
   const handleToggle = async (todo: Todo) => {
+    const completed = !todo.completed;
     try {
-      await update(todo.id, { completed: !todo.completed });
+      await update(todo.id, { completed });
+      showToast(
+        completed ? "Tarea completada" : "Tarea marcada como pendiente",
+        "success",
+      );
     } catch (err) {
       showToast(
         err instanceof Error ? err.message : "Error al actualizar",
