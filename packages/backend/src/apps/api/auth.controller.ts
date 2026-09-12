@@ -4,6 +4,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthService } from 'src/contexts/identity-access/auth/application/auth.service';
 import { LoginDto } from 'src/contexts/identity-access/auth/application/dto/login.dto';
@@ -32,7 +33,8 @@ export class AuthController {
       },
     },
   })
-  @ApiBadRequestResponse({ description: 'Credenciales inválidas' })
+  @ApiBadRequestResponse({ description: 'Datos inválidos' })
+  @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
