@@ -103,7 +103,7 @@ export default function LoginPage() {
                   required
                   autoFocus
                   autoComplete="email"
-                  placeholder="admin@todo.com"
+                  placeholder="admin@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />

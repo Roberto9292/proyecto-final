@@ -8,8 +8,8 @@ interface FooterProps {
 export default function Footer({ tone = "light" }: FooterProps) {
   return (
     <p
-      className={`text-xs ${
-        tone === "dark" ? "text-slate-500" : "text-gray-400"
+      className={`text-center text-xs ${
+        tone === "dark" ? "text-slate-300" : "text-gray-900"
       }`}
     >
       &copy; {new Date().getFullYear()} {AUTOR}. Todos los derechos reservados.
