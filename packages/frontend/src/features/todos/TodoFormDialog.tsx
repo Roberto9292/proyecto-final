@@ -94,7 +94,6 @@ export default function TodoFormDialog({
     <Modal
       open={open}
       title={todo ? "Editar tarea" : "Nueva tarea"}
-      description="Solo el título es requerido."
       onClose={onClose}
       footer={
         <>
