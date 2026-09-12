@@ -6,6 +6,7 @@ import { useNotifications } from "../hooks/useNotifications";
 import NotificationBell from "./NotificationBell";
 import Icon from "./ui/Icon";
 import IconButton from "./ui/IconButton";
+import ConfirmDialog from "./ui/ConfirmDialog";
 import type { IconName } from "./ui/Icon";
 
 interface NavItem {
@@ -26,6 +27,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { notifications, unread, connected, markAsRead, markAllAsRead } =
     useNotifications();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
 
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
   const current = NAV.find((item) => item.to === pathname);
@@ -80,7 +82,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <p className="text-[11px] text-slate-400">{user?.role}</p>
             </div>
             <button
-              onClick={logout}
+              onClick={() => setConfirmingLogout(true)}
               title="Cerrar sesión"
               aria-label="Cerrar sesión"
               className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
@@ -127,6 +129,18 @@ export default function Layout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      <ConfirmDialog
+        open={confirmingLogout}
+        tone="neutral"
+        icon="logout"
+        title="Cerrar sesión"
+        message={`Vas a salir de la cuenta ${user?.email ?? ""}.`}
+        note="Tus tareas y categorías quedan guardadas. Vas a tener que volver a ingresar tus credenciales."
+        confirmLabel="Cerrar sesión"
+        onConfirm={logout}
+        onCancel={() => setConfirmingLogout(false)}
+      />
     </div>
   );
 }
