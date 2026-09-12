@@ -143,8 +143,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         icon="logout"
         title="Cerrar sesión"
         question="¿Estás seguro que deseas cerrar sesión?"
-        target={user?.email ?? ""}
-        targetMeta={<span>{user?.role}</span>}
         confirmLabel="Cerrar sesión"
         onConfirm={logout}
         onCancel={() => setConfirmingLogout(false)}
