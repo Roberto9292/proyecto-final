@@ -18,8 +18,22 @@ Proyecto de tareas construido como monorepo con **pnpm workspaces**.
 | Aplicación | http://54.90.184.57 |
 | Swagger | http://54.90.184.57/docs |
 | API | `http://54.90.184.57/api` |
-| Email | `admin@gmail.com` |
-| Contraseña | `admin123` |
+
+#### Usuarios de prueba
+
+Cada uno entra con su nombre seguido de `123`:
+
+| Email | Contraseña | Rol | Estado |
+|---|---|---|---|
+| `admin@gmail.com` | `admin123` | ADMIN | ACTIVE |
+| `lucia.mendez@gmail.com` | `lucia123` | CLIENT | ACTIVE |
+| `carlos.rojas@gmail.com` | `carlos123` | CLIENT | ACTIVE |
+| `sofia.aguirre@gmail.com` | `sofia123` | CLIENT | ACTIVE |
+| `diego.paredes@gmail.com` | `diego123` | CLIENT | BLOCKED |
+
+`admin` es el único que puede cambiar roles, bloquear usuarios y eliminarlos.
+`diego` está bloqueado a propósito: sus credenciales son correctas pero el login
+responde `401`, que es como se comporta el campo `status`.
 
 Todo entra por el puerto 80: nginx sirve el frontend en `/`, la API en `/api/` y
 Swagger en `/docs`. Los puertos de los servicios no están expuestos a internet.
@@ -130,6 +144,22 @@ sobrescribe nada: si el usuario ya existe, avisa y termina.
 
 > Son credenciales de desarrollo. Antes de exponer la aplicación hay que
 > cambiar la contraseña desde `PATCH /users/:id`.
+
+### Datos de prueba
+
+Para tener la aplicación poblada hay una segunda semilla con 5 usuarios, 10
+categorías y 20 tareas —10 completadas y 10 pendientes—. Son las credenciales
+de [Usuarios de prueba](#usuarios-de-prueba): cada uno entra con su nombre
+seguido de `123`.
+
+```bash
+pnpm --filter todo-backend build   # compila el cliente de Prisma que usa
+pnpm --filter todo-backend exec node prisma/seed-demo.js
+```
+
+A diferencia del seed anterior, este define el estado completo de la demo:
+reescribe las contraseñas y reemplaza las tareas de esos cinco usuarios en cada
+corrida, de modo que el resultado siempre es el mismo conjunto.
 
 ## Scripts disponibles
 

@@ -5,6 +5,8 @@
 //
 //   docker compose exec -w /app/packages/backend backend node prisma/seed-demo.js
 
+require('dotenv/config');
+
 const path = require('path');
 const argon2 = require('argon2');
 const { PrismaPg } = require('@prisma/adapter-pg');
