@@ -122,6 +122,40 @@ describe('TodoService', () => {
       ).rejects.toThrow(NotFoundException);
       expect(repository.create).not.toHaveBeenCalled();
     });
+
+    it('turns the optional fields into null when they are missing', async () => {
+      repository.create.mockResolvedValue(mockTodo);
+
+      await service.create('user-1', { title: 'Solo el titulo' });
+
+      expect(repository.create).toHaveBeenCalledWith({
+        title: 'Solo el titulo',
+        description: null,
+        completed: false,
+        userId: 'user-1',
+        dueDate: null,
+        categoryId: null,
+      });
+    });
+
+    it('parses the due date and keeps the category when both are given', async () => {
+      repository.create.mockResolvedValue(mockTodo);
+      categoryService.getOne.mockResolvedValue(undefined as never);
+
+      await service.create('user-1', {
+        title: 'Con fecha',
+        dueDate: '2026-09-15T10:00:00.000Z',
+        categoryId: 'cat-1',
+      });
+
+      expect(categoryService.getOne).toHaveBeenCalledWith('cat-1', 'user-1');
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dueDate: new Date('2026-09-15T10:00:00.000Z'),
+          categoryId: 'cat-1',
+        }),
+      );
+    });
   });
 
   describe('update', () => {
@@ -147,6 +181,40 @@ describe('TodoService', () => {
 
       await service.update('1', 'user-1', { title: 'New title' });
       expect(notificationPort.send).not.toHaveBeenCalled();
+    });
+
+    it('leaves the due date untouched when the payload does not mention it', async () => {
+      repository.getOne.mockResolvedValue(mockTodo);
+      repository.update.mockResolvedValue(mockTodo);
+
+      await service.update('1', 'user-1', { title: 'New title' });
+
+      expect(repository.update).toHaveBeenCalledWith('1', {
+        title: 'New title',
+        dueDate: undefined,
+      });
+    });
+
+    it('parses the due date when one is given', async () => {
+      repository.getOne.mockResolvedValue(mockTodo);
+      repository.update.mockResolvedValue(mockTodo);
+
+      await service.update('1', 'user-1', {
+        dueDate: '2026-09-15T10:00:00.000Z',
+      });
+
+      expect(repository.update).toHaveBeenCalledWith('1', {
+        dueDate: new Date('2026-09-15T10:00:00.000Z'),
+      });
+    });
+
+    it('clears the due date when it is sent as null', async () => {
+      repository.getOne.mockResolvedValue(mockTodo);
+      repository.update.mockResolvedValue({ ...mockTodo, dueDate: null });
+
+      await service.update('1', 'user-1', { dueDate: null });
+
+      expect(repository.update).toHaveBeenCalledWith('1', { dueDate: null });
     });
 
     it('throws NotFoundException when todo not found', async () => {

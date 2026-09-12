@@ -128,6 +128,34 @@ describe('CategoryService', () => {
       expect(repository.findByName).not.toHaveBeenCalled();
     });
 
+    it('throws ConflictException when renaming to a name already taken', async () => {
+      repository.getOne.mockResolvedValue(mockCategory);
+      repository.findByName.mockResolvedValue({
+        ...mockCategory,
+        id: '2',
+        name: 'Personal',
+      });
+
+      await expect(
+        service.update('1', 'user-1', { name: 'Personal' }),
+      ).rejects.toThrow(ConflictException);
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('allows renaming to a free name', async () => {
+      repository.getOne.mockResolvedValue(mockCategory);
+      repository.findByName.mockResolvedValue(null);
+      repository.update.mockResolvedValue({
+        ...mockCategory,
+        name: 'Personal',
+      });
+
+      const result = await service.update('1', 'user-1', { name: 'Personal' });
+
+      expect(repository.findByName).toHaveBeenCalledWith('Personal');
+      expect(result.name).toBe('Personal');
+    });
+
     it('throws NotFoundException when category not found', async () => {
       repository.getOne.mockResolvedValue(null);
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Todo as TodoRow } from 'generated/prisma/client';
+import type { Todo as TodoRow } from 'generated/prisma/client';
 import { PrismaService } from 'src/shared/infrastructure/prisma/prisma.service';
 import { Todo } from '../domain/todo.entity';
 import {
