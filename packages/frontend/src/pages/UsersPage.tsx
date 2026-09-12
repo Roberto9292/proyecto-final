@@ -12,6 +12,7 @@ import Button from "../components/ui/Button";
 import IconButton from "../components/ui/IconButton";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
+import StatusPill from "../components/ui/StatusPill";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
@@ -149,11 +150,11 @@ export default function UsersPage() {
                     </Cell>
 
                     <Cell>
-                      <Badge
+                      <StatusPill
                         tone={user.status === "ACTIVE" ? "success" : "danger"}
-                      >
-                        {user.status === "ACTIVE" ? "Activo" : "Bloqueado"}
-                      </Badge>
+                        icon={user.status === "ACTIVE" ? "checkCircle" : "lock"}
+                        label={user.status === "ACTIVE" ? "Activo" : "Bloqueado"}
+                      />
                     </Cell>
 
                     <Cell align="right">

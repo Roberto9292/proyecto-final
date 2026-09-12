@@ -12,6 +12,7 @@ import Button from "../components/ui/Button";
 import IconButton from "../components/ui/IconButton";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
+import StatusPill from "../components/ui/StatusPill";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
@@ -235,7 +236,7 @@ export default function TodosPage() {
           <>
             <Table
               caption="Listado de tareas"
-              headers={["Tarea", "Categoría", "Vence", "_Acciones"]}
+              headers={["Tarea", "Estado", "Categoría", "Vence", "_Acciones"]}
             >
               {visible.map((todo) => {
                 const category = categoryOf(todo.categoryId);
@@ -244,33 +245,37 @@ export default function TodosPage() {
                 return (
                   <Row key={todo.id}>
                     <Cell>
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={todo.completed}
-                          onChange={() => handleToggle(todo)}
-                          aria-label={`Marcar "${todo.title}" como ${
-                            todo.completed ? "pendiente" : "completada"
+                      <div className="min-w-0">
+                        <p
+                          className={`font-medium ${
+                            todo.completed
+                              ? "text-gray-400 line-through"
+                              : "text-gray-900"
                           }`}
-                          className="mt-0.5 h-4 w-4 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <div className="min-w-0">
-                          <p
-                            className={`font-medium ${
-                              todo.completed
-                                ? "text-gray-400 line-through"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {todo.title}
+                        >
+                          {todo.title}
+                        </p>
+                        {todo.description && (
+                          <p className="mt-0.5 max-w-md truncate text-xs text-gray-500">
+                            {todo.description}
                           </p>
-                          {todo.description && (
-                            <p className="mt-0.5 max-w-md truncate text-xs text-gray-500">
-                              {todo.description}
-                            </p>
-                          )}
-                        </div>
+                        )}
                       </div>
+                    </Cell>
+
+                    <Cell>
+                      <StatusPill
+                        tone={todo.completed ? "success" : "neutral"}
+                        icon={todo.completed ? "checkCircle" : "circle"}
+                        label={todo.completed ? "Completada" : "Pendiente"}
+                        pressed={todo.completed}
+                        actionLabel={
+                          todo.completed
+                            ? `Marcar "${todo.title}" como pendiente`
+                            : `Marcar "${todo.title}" como completada`
+                        }
+                        onToggle={() => handleToggle(todo)}
+                      />
                     </Cell>
 
                     <Cell>
