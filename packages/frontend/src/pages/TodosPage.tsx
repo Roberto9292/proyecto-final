@@ -22,15 +22,25 @@ import { Table, Row, Cell, TableFooter } from "../components/ui/Table";
 
 type StatusFilter = "all" | "pending" | "done";
 
+// dueDate es un día del calendario y se guarda como medianoche UTC, así que se
+// lee en UTC: convertirlo a la zona local lo corre un día hacia atrás.
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString("es-AR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   });
 
+const hoy = () => {
+  const now = new Date();
+  const mes = String(now.getMonth() + 1).padStart(2, "0");
+  const dia = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${mes}-${dia}`;
+};
+
 const isOverdue = (todo: Todo) =>
-  Boolean(todo.dueDate) && !todo.completed && new Date(todo.dueDate!) < new Date();
+  Boolean(todo.dueDate) && !todo.completed && todo.dueDate!.slice(0, 10) < hoy();
 
 export default function TodosPage() {
   const { todos, loading, reload, create, update, remove } = useTodos();
