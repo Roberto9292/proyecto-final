@@ -607,6 +607,11 @@ cp .env.sample .env
 | `PUBLIC_HOST` | Adónde apunta el frontend compilado | IP pública o dominio |
 | `CORS_ORIGIN` | Origen que el backend acepta | La URL del **frontend**, no la del backend |
 
+Tres de ellas no tienen valor por defecto y el compose se detiene si faltan:
+`JWT_SECRET`, `POSTGRES_USER` y `POSTGRES_PASSWORD`. Son credenciales, y
+dejarles un valor de reserva escrito en `docker-compose.yml` equivale a
+publicarlas: el archivo está en el repositorio.
+
 Dos detalles que suelen costar una tarde de depuración:
 
 - **`JWT_SECRET` no tiene valor por defecto.** Si falta, `docker compose up`
@@ -663,6 +668,8 @@ El job `deploy` del CI necesita dos secretos en
 - [ ] `.env` creado a partir de `.env.sample`, con las 9 variables completas
 - [ ] `JWT_SECRET` — generado con `openssl rand -hex 32`
 - [ ] `CORS_ORIGIN` — apunta al frontend, no al backend
+- [ ] `POSTGRES_USER` y `POSTGRES_PASSWORD` — propios, no los del sample
+- [ ] `chmod 600 .env`
 - [ ] `DATABASE_URL` — apunta al contenedor postgres, no a localhost
 - [ ] `MONGODB_URI` — apunta al contenedor mongodb
 - [ ] Puertos abiertos en security group (80, 443, 22)

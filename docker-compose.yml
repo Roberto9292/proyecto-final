@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: "${POSTGRES_USER:?falta POSTGRES_USER en el .env, copialo de .env.sample}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en el .env, copialo de .env.sample}"
       POSTGRES_DB: ${POSTGRES_DB:-todo}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -36,7 +36,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3050
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-todo}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-todo}?schema=public
       JWT_SECRET: "${JWT_SECRET:?falta JWT_SECRET en el .env, generalo con openssl rand -hex 32}"
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       NOTIFICATION_SERVICE_URL: http://notification:3060
