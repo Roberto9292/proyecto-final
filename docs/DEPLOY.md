@@ -619,6 +619,33 @@ Dos detalles que suelen costar una tarde de depuración:
 El frontend se compila con `PUBLIC_HOST` incrustado, así que **si esa IP cambia hay
 que reconstruir la imagen**, no alcanza con reiniciar el contenedor.
 
+### Cómo llegan los secretos a los contenedores
+
+Docker Compose lee el `.env` de la raíz por su cuenta y reemplaza cada
+`${VARIABLE}` del `docker-compose.yml` antes de levantar los servicios. No hace
+falta declararlo en ningún lado.
+
+Cada servicio recibe **solo las variables que necesita**, porque están
+enumeradas una por una en su bloque `environment`. Usar `env_file` en su lugar
+metería todas las variables del archivo en todos los contenedores: el servicio
+de notificaciones terminaría con `JWT_SECRET` y con la contraseña de PostgreSQL
+sin tener nada que hacer con ellas.
+
+En el servidor, el archivo se protege como cualquier credencial:
+
+```bash
+chmod 600 .env
+```
+
+Un `.dockerignore` en la raíz mantiene los `.env` fuera del contexto de
+construcción. Sin él, `COPY packages/backend/ ./packages/backend/` se llevaría
+el `.env` del servidor adentro de una capa de la imagen, de donde se puede
+recuperar con `docker history`.
+
+Para una infraestructura más grande el paso siguiente es un gestor de secretos
+—AWS Secrets Manager o SSM Parameter Store— que evita tener el archivo en disco
+y permite rotar sin volver a desplegar.
+
 ### Secretos del repositorio en GitHub
 
 El job `deploy` del CI necesita dos secretos en
