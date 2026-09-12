@@ -25,6 +25,8 @@ COPY packages/backend/prisma ./packages/backend/prisma/
 RUN pnpm approve-builds argon2 esbuild @swc/core @parcel/watcher @prisma/engines prisma unrs-resolver 2>/dev/null || true
 RUN pnpm install --frozen-lockfile --filter todo-backend --prod
 
+COPY packages/backend/prisma7.config.ts ./packages/backend/prisma7.config.ts
+
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
 COPY --from=builder /app/packages/backend/generated ./packages/backend/generated
 
