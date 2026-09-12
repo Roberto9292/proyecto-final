@@ -83,41 +83,45 @@ export default function ConfirmDialog({
         </>
       }
     >
-      <div className="flex gap-4">
-        <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${styles.badge}`}
-        >
-          <Icon
-            name={icon ?? (tone === "danger" ? "warning" : "circle")}
-            className="h-5 w-5"
-          />
-        </span>
+      <div className="space-y-4">
+        <div className="flex gap-4">
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${styles.badge}`}
+          >
+            <Icon
+              name={icon ?? (tone === "danger" ? "warning" : "circle")}
+              className="h-5 w-5"
+            />
+          </span>
 
-        <div className="min-w-0 flex-1 space-y-3">
-          <p className="text-sm text-gray-700">{question}</p>
+          <div className="min-w-0 flex-1 space-y-3">
+            <p className="text-sm text-gray-700">{question}</p>
 
-          {target && (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
-              <p className="truncate text-sm font-semibold text-gray-900">
-                {target}
-              </p>
-              {targetMeta && (
-                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  {targetMeta}
-                </div>
-              )}
-            </div>
-          )}
-
-          {consequence && (
-            <p
-              role="note"
-              className={`rounded-lg border px-3 py-2 text-xs ${styles.consequence}`}
-            >
-              {consequence}
-            </p>
-          )}
+            {target && (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                <p className="truncate text-sm font-semibold text-gray-900">
+                  {target}
+                </p>
+                {targetMeta && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    {targetMeta}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Ocupa todo el ancho, alineada con el ícono: la consecuencia es del
+            diálogo entero, no del registro que se muestra al costado. */}
+        {consequence && (
+          <p
+            role="note"
+            className={`rounded-lg border px-3 py-2.5 text-xs ${styles.consequence}`}
+          >
+            {consequence}
+          </p>
+        )}
       </div>
     </Modal>
   );
