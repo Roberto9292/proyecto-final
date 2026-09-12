@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: todo
     ports:
       - "5432:5432"
@@ -35,10 +35,10 @@ services:
       - "3050:3050"
     environment:
       PORT: 3050
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/todo?schema=public
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/todo?schema=public
+      JWT_SECRET: "${JWT_SECRET:?falta JWT_SECRET en el .env, generalo con openssl rand -hex 32}"
       NOTIFICATION_SERVICE_URL: http://notification:3060
-      CORS_ORIGIN: http://localhost:3040
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3040}
     depends_on:
       postgres:
         condition: service_healthy

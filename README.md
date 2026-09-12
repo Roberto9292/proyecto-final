@@ -34,13 +34,24 @@ ejecutar `pnpm approve-builds`.
 
 ## Variables de entorno
 
-Cada package tiene su propio `.env`. Copia los samples:
+Para correr los servicios sueltos, cada package tiene su propio `.env`:
 
 ```bash
 cp packages/backend/.env.sample packages/backend/.env
 cp packages/notification/.env.sample packages/notification/.env
 cp packages/frontend/.env.sample packages/frontend/.env
 ```
+
+Para levantar todo con Docker Compose, en cambio, las variables van en un único
+archivo en la raíz:
+
+```bash
+cp .env.sample .env
+```
+
+`JWT_SECRET` no tiene valor por defecto: hay que generarlo con
+`openssl rand -hex 32`. Los detalles de cada variable están en
+[`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Ejecutar
 

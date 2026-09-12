@@ -586,9 +586,51 @@ docker compose up -d backend frontend
 
 ---
 
+## Configuración antes de desplegar
+
+Todas las variables que consume `docker-compose.yml` viven en un único archivo
+en la raíz del repositorio:
+
+```bash
+cp .env.sample .env
+```
+
+| Variable | Para qué | Valor en producción |
+|----------|----------|---------------------|
+| `JWT_SECRET` | Firma los tokens | `openssl rand -hex 32` |
+| `EC2_IP` | Adónde apunta el frontend compilado | IP pública o dominio |
+| `CORS_ORIGIN` | Origen que el backend acepta | La URL del **frontend**, no la del backend |
+| `POSTGRES_PASSWORD` | Contraseña de la base | Una contraseña propia |
+
+Dos detalles que suelen costar una tarde de depuración:
+
+- **`JWT_SECRET` no tiene valor por defecto.** Si falta, `docker compose up`
+  se detiene con un mensaje en lugar de levantar la API firmando con un
+  secreto que está escrito en el repositorio y que cualquiera puede leer.
+- **`CORS_ORIGIN` es el origen del frontend.** Si queda en `localhost`, el
+  navegador bloquea todas las llamadas y la aplicación parece rota sin que el
+  backend registre ningún error.
+
+El frontend se compila con `EC2_IP` incrustado, así que **si esa IP cambia hay
+que reconstruir la imagen**, no alcanza con reiniciar el contenedor.
+
+### Secretos del repositorio en GitHub
+
+El job `deploy` del CI necesita dos secretos en
+*Settings → Secrets and variables → Actions*:
+
+| Secreto | Cómo obtenerlo |
+|---------|----------------|
+| `EC2_HOST` | `aws ec2 describe-instances --instance-ids i-XXXXX --query 'Reservations[0].Instances[0].PublicIpAddress' --output text` |
+| `EC2_SSH_KEY` | El contenido de la clave privada generada en la instancia |
+
+---
+
 ## Checklist antes de pruebas
 
+- [ ] `.env` creado a partir de `.env.sample`, con las 4 variables completas
 - [ ] `JWT_SECRET` — generado con `openssl rand -hex 32`
+- [ ] `CORS_ORIGIN` — apunta al frontend, no al backend
 - [ ] `DATABASE_URL` — apunta al contenedor postgres, no a localhost
 - [ ] `MONGODB_URI` — apunta al contenedor mongodb
 - [ ] Puertos abiertos en security group (80, 443, 22)
