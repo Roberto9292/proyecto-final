@@ -2,23 +2,25 @@ import { Todo } from './todo.entity';
 
 export interface CreateTodoData {
   title: string;
-  description: string;
+  description: string | null;
   completed: boolean;
   userId: string;
-  dueDate?: Date | null;
+  dueDate: Date | null;
+  categoryId: string | null;
 }
 
 export interface UpdateTodoData {
   title?: string;
-  description?: string;
+  description?: string | null;
   completed?: boolean;
-  dueDate?: string | Date | null;
+  dueDate?: Date | null;
+  categoryId?: string | null;
 }
 
 export abstract class TodoRepository {
-  abstract findAll(): Promise<Todo[]>;
-  abstract getOne(id: string): Promise<Todo | null>;
+  abstract findAll(userId: string): Promise<Todo[]>;
+  abstract getOne(id: string, userId: string): Promise<Todo | null>;
   abstract create(data: CreateTodoData): Promise<Todo>;
-  abstract update(id: string, data: UpdateTodoData): Promise<Todo | null>;
+  abstract update(id: string, data: UpdateTodoData): Promise<Todo>;
   abstract deleteItem(id: string): Promise<void>;
 }
