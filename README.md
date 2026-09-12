@@ -6,10 +6,31 @@ Proyecto de tareas construido como monorepo con **pnpm workspaces**.
 
 | | |
 |---|---|
-| Repositorio | https://github.com/Roberto9292/proyecto-final |
-| Pull Request | https://github.com/Roberto9292/proyecto-final/pull/1 |
+| Repositorio | https://github.com/Roberto9292/todo-backend |
+| Pull Request | https://github.com/Roberto9292/todo-backend/pull/1 |
 | Rama | `feature/final-project-categories` |
 | Autor | Roberto Ugarte |
+
+### Aplicación desplegada
+
+| | |
+|---|---|
+| Aplicación | http://54.90.184.57 |
+| Swagger | http://54.90.184.57/docs |
+| API | `http://54.90.184.57/api` |
+| Email | `admin@gmail.com` |
+| Contraseña | `admin123` |
+
+Todo entra por el puerto 80: nginx sirve el frontend en `/`, la API en `/api/` y
+Swagger en `/docs`. Los puertos de los servicios no están expuestos a internet.
+
+`/api` es el prefijo de los endpoints (`/api/auth/login`, `/api/categories`,
+`/api/todo`, `/api/users`), no una página: abrirlo en el navegador devuelve 404.
+Para probar la API conviene usar Swagger, que ya trae el botón *Authorize* para
+pegar el token.
+
+La base tiene datos de prueba cargados con `packages/backend/prisma/seed-demo.js`:
+5 usuarios, 10 categorías y 20 tareas.
 
 El trabajo del proyecto final está en la rama `feature/final-project-categories`.
 `main` conserva la base del repositorio original, de modo que el Pull Request
@@ -131,7 +152,7 @@ sobrescribe nada: si el usuario ya existe, avisa y termina.
 - **Arquitectura:** DDD (Domain-Driven Design) con Hexagonal Architecture
 - **Auth:** JWT + Argon2id + Passport, con guard de roles para endpoints de admin
 - **Docs:** Swagger en `http://localhost:3050/docs`
-- **Tests:** Jest (66 tests, 9 suites)
+- **Tests:** Jest (131 tests, 16 suites)
 
 ### Notification (`packages/notification`)
 
