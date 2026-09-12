@@ -31,7 +31,9 @@ const { PrismaClient } = loadPrismaClient();
 const adapter = new PrismaPg(process.env.DATABASE_URL);
 const prisma = new PrismaClient({ adapter });
 
-const PASSWORD = 'admin123';
+// Cada usuario tiene su propia contraseña, `<key>123`, para poder entrar con
+// cualquiera de ellos y ver la aplicación desde distintos roles.
+const passwordFor = (key) => `${key}123`;
 
 // Desplazamiento en días desde la corrida, para que siempre haya vencimientos
 // pasados y futuros en vez de quedar todo vencido con el tiempo.
@@ -90,23 +92,31 @@ const TODOS = [
 ];
 
 async function main() {
-  const hashed = await argon2.hash(PASSWORD, {
-    type: argon2.argon2id,
-    memoryCost: 19456,
-    timeCost: 2,
-    parallelism: 1,
-  });
+  const hash = (plain) =>
+    argon2.hash(plain, {
+      type: argon2.argon2id,
+      memoryCost: 19456,
+      timeCost: 2,
+      parallelism: 1,
+    });
 
   const userIds = {};
   for (const user of USERS) {
-    // El password solo se fija al crear, para no pisar uno ya cambiado.
+    // La contraseña se reescribe en cada corrida: la semilla define el estado
+    // completo de la demo, contraseñas incluidas.
+    const password = await hash(passwordFor(user.key));
     const row = await prisma.user.upsert({
       where: { email: user.email },
-      update: { name: user.name, role: user.role, status: user.status },
+      update: {
+        name: user.name,
+        password,
+        role: user.role,
+        status: user.status,
+      },
       create: {
         email: user.email,
         name: user.name,
-        password: hashed,
+        password,
         role: user.role,
         status: user.status,
       },
@@ -158,7 +168,10 @@ async function main() {
   console.log(
     `Tareas: ${TODOS.length} (${completed} completadas, ${TODOS.length - completed} pendientes, ${bare} sin campos opcionales)`,
   );
-  console.log(`\nContraseña de todos los usuarios: ${PASSWORD}`);
+  console.log('\nCredenciales:');
+  for (const user of USERS) {
+    console.log(`  ${user.email.padEnd(26)} ${passwordFor(user.key)}`);
+  }
 }
 
 main()
