@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNotifications } from "../hooks/useNotifications";
 import NotificationBell from "./NotificationBell";
+import Footer from "./Footer";
 import Icon from "./ui/Icon";
 import IconButton from "./ui/IconButton";
 import ConfirmDialog from "./ui/ConfirmDialog";
@@ -128,6 +129,12 @@ export default function Layout({ children }: { children: ReactNode }) {
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 lg:px-8">
           {children}
         </main>
+
+        <footer className="border-t border-gray-200 px-4 py-5 lg:px-8">
+          <div className="mx-auto w-full max-w-7xl">
+            <Footer />
+          </div>
+        </footer>
       </div>
 
       <ConfirmDialog

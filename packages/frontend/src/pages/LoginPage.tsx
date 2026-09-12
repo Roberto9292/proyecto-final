@@ -6,6 +6,7 @@ import Button from "../components/ui/Button";
 import Field from "../components/ui/Field";
 import Input from "../components/ui/Input";
 import Icon from "../components/ui/Icon";
+import Footer from "../components/Footer";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -72,9 +73,7 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="text-xs text-slate-500">
-          NestJS · Prisma · PostgreSQL · React
-        </p>
+        <Footer tone="dark" />
       </aside>
 
       <main className="flex flex-1 items-center justify-center bg-gray-50 p-6">
@@ -134,6 +133,10 @@ export default function LoginPage() {
               Entrar
             </Button>
           </form>
+
+          <div className="mt-10 lg:hidden">
+            <Footer />
+          </div>
         </div>
       </main>
     </div>
