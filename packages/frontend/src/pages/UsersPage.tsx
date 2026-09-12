@@ -1,164 +1,217 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
+import { useUsers } from "../hooks/useUsers";
+import type { User } from "../hooks/useUsers";
 import { useAuth } from "../hooks/useAuth";
-import { api } from "../lib/api";
 import { showToast } from "../components/Toast";
-
-interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
-  status: string;
-}
+import UserFormDialog from "../features/users/UserFormDialog";
+import type { UserInput } from "../hooks/useUsers";
+import PageHeader from "../components/ui/PageHeader";
+import Toolbar from "../components/ui/Toolbar";
+import SearchInput from "../components/ui/SearchInput";
+import Button from "../components/ui/Button";
+import IconButton from "../components/ui/IconButton";
+import Card from "../components/ui/Card";
+import Badge from "../components/ui/Badge";
+import Spinner from "../components/ui/Spinner";
+import EmptyState from "../components/ui/EmptyState";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
+import { Table, Row, Cell, TableFooter } from "../components/ui/Table";
 
 export default function UsersPage() {
-  const { token } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ email: "", name: "", password: "" });
-  const [submitting, setSubmitting] = useState(false);
+  const { users, loading, reload, create, update, remove } = useUsers();
+  const { user: currentUser } = useAuth();
+  const [search, setSearch] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [deleting, setDeleting] = useState<User | null>(null);
+  const [removing, setRemoving] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
+  const isAdmin = currentUser?.role === "ADMIN";
+
+  const visible = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return users;
+    return users.filter(
+      (u) =>
+        u.email.toLowerCase().includes(term) ||
+        (u.name ?? "").toLowerCase().includes(term),
+    );
+  }, [users, search]);
+
+  const handleCreate = async (input: UserInput) => {
+    await create(input);
+    showToast("Usuario creado", "success");
+  };
+
+  const handleToggleStatus = async (user: User) => {
+    const status = user.status === "ACTIVE" ? "BLOCKED" : "ACTIVE";
     try {
-      const data = await api<User[]>("/api/users", { token });
-      setUsers(data);
+      await update(user.id, { status });
+      showToast(
+        status === "ACTIVE" ? "Usuario desbloqueado" : "Usuario bloqueado",
+        "success",
+      );
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al cargar", "error");
-    } finally {
-      setLoading(false);
+      showToast(
+        err instanceof Error ? err.message : "Error al actualizar",
+        "error",
+      );
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setRemoving(true);
     try {
-      await api("/api/users", { method: "POST", body: form, token });
-      setForm({ email: "", name: "", password: "" });
-      setShowForm(false);
-      showToast("Usuario creado", "success");
-      load();
+      await remove(deleting.id);
+      showToast("Usuario eliminado", "success");
+      setDeleting(null);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al crear", "error");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar",
+        "error",
+      );
     } finally {
-      setSubmitting(false);
+      setRemoving(false);
     }
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold text-gray-900">Usuarios</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          {showForm ? "Cancelar" : "Nuevo usuario"}
-        </button>
-      </div>
+    <>
+      <PageHeader
+        title="Usuarios"
+        subtitle="Administrá las cuentas que acceden al sistema."
+        actions={
+          <Button icon="plus" onClick={() => setFormOpen(true)}>
+            Nuevo usuario
+          </Button>
+        }
+      />
 
-      {showForm && (
-        <form
-          onSubmit={handleCreate}
-          className="mb-6 p-4 bg-white border border-gray-200 rounded-lg"
-        >
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <input
-              type="email"
-              placeholder="Email"
-              required
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="Nombre"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              required
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
-          >
-            {submitting ? "Creando..." : "Crear usuario"}
-          </button>
-        </form>
-      )}
+      <Toolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por email o nombre..."
+        />
+        <IconButton
+          icon="refresh"
+          label="Actualizar"
+          onClick={reload}
+          disabled={loading}
+        />
+      </Toolbar>
 
-      {loading ? (
-        <p className="text-sm text-gray-500">Cargando...</p>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">
-                  Email
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">
-                  Nombre
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">
-                  Rol
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">
-                  Estado
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {users.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-900">{u.email}</td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {u.name || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        u.role === "ADMIN"
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        u.status === "ACTIVE"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {u.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+      <Card>
+        {loading ? (
+          <Spinner label="Cargando usuarios..." />
+        ) : visible.length === 0 ? (
+          <EmptyState
+            icon="users"
+            title="Sin resultados"
+            message={`Ningún usuario coincide con "${search}".`}
+          />
+        ) : (
+          <>
+            <Table
+              caption="Listado de usuarios"
+              headers={["Usuario", "Rol", "Estado", "_Acciones"]}
+            >
+              {visible.map((user) => {
+                const isSelf = user.id === currentUser?.id;
+
+                return (
+                  <Row key={user.id}>
+                    <Cell>
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">
+                          {user.email.slice(0, 2).toUpperCase()}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900">
+                            {user.name ?? "Sin nombre"}
+                            {isSelf && (
+                              <span className="ml-2 text-xs font-normal text-gray-400">
+                                (vos)
+                              </span>
+                            )}
+                          </p>
+                          <p className="truncate text-xs text-gray-500">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                    </Cell>
+
+                    <Cell>
+                      <Badge tone={user.role === "ADMIN" ? "purple" : "neutral"}>
+                        {user.role}
+                      </Badge>
+                    </Cell>
+
+                    <Cell>
+                      <Badge
+                        tone={user.status === "ACTIVE" ? "success" : "danger"}
+                      >
+                        {user.status === "ACTIVE" ? "Activo" : "Bloqueado"}
+                      </Badge>
+                    </Cell>
+
+                    <Cell align="right">
+                      <div className="flex justify-end gap-1">
+                        <IconButton
+                          icon={user.status === "ACTIVE" ? "lock" : "check"}
+                          label={
+                            user.status === "ACTIVE"
+                              ? `Bloquear a ${user.email}`
+                              : `Desbloquear a ${user.email}`
+                          }
+                          disabled={!isAdmin || isSelf}
+                          onClick={() => handleToggleStatus(user)}
+                        />
+                        <IconButton
+                          icon="trash"
+                          tone="danger"
+                          label={`Eliminar a ${user.email}`}
+                          disabled={!isAdmin || isSelf}
+                          onClick={() => setDeleting(user)}
+                        />
+                      </div>
+                    </Cell>
+                  </Row>
+                );
+              })}
+            </Table>
+
+            <TableFooter>
+              <span className="text-sm text-gray-500">
+                {visible.length} de {users.length}{" "}
+                {users.length === 1 ? "usuario" : "usuarios"}
+              </span>
+              {!isAdmin && (
+                <span className="text-xs text-gray-400">
+                  Solo un administrador puede bloquear o eliminar usuarios.
+                </span>
+              )}
+            </TableFooter>
+          </>
+        )}
+      </Card>
+
+      <UserFormDialog
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleCreate}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Eliminar usuario"
+        message={`¿Seguro que querés eliminar a "${deleting?.email}"?`}
+        note="Se eliminarán también todas sus tareas y categorías. Esta acción no se puede deshacer."
+        loading={removing}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleting(null)}
+      />
+    </>
   );
 }
