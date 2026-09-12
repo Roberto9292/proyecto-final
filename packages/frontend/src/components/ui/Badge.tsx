@@ -21,14 +21,18 @@ const base =
   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset";
 
 export default function Badge({ tone = "neutral", color, children }: BadgeProps) {
+  // El color va en el punto, no en el texto: pintar el texto con el color de
+  // la categoría no llega al contraste mínimo con ningún tono (el amarillo
+  // queda en 1.47:1). El punto conserva la identidad visual y el texto se
+  // mantiene legible.
   if (color) {
     return (
       <span
-        className={`${base} ring-transparent`}
-        style={{ backgroundColor: `${color}1A`, color }}
+        className={`${base} text-gray-700 ring-transparent`}
+        style={{ backgroundColor: `${color}1F` }}
       >
         <span
-          className="h-1.5 w-1.5 rounded-full"
+          className="h-2 w-2 rounded-full"
           style={{ backgroundColor: color }}
         />
         {children}

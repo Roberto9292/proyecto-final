@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useCategories } from "../hooks/useCategories";
+import { useTodos } from "../hooks/useTodos";
 import type { Category, CategoryInput } from "../hooks/useCategories";
 import { showToast } from "../components/Toast";
 import CategoryFormDialog from "../features/categories/CategoryFormDialog";
@@ -10,6 +11,7 @@ import Button from "../components/ui/Button";
 import IconButton from "../components/ui/IconButton";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
+import ColorSwatch from "../components/ui/ColorSwatch";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
@@ -18,11 +20,19 @@ import { Table, Row, Cell, TableFooter } from "../components/ui/Table";
 export default function CategoriesPage() {
   const { categories, loading, reload, create, update, remove } =
     useCategories();
+  const { todos } = useTodos();
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Category | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Category | null>(null);
   const [removing, setRemoving] = useState(false);
+
+  const todoCountByCategory = useMemo(() => {
+    return todos.reduce<Record<string, number>>((acc, todo) => {
+      if (todo.categoryId) acc[todo.categoryId] = (acc[todo.categoryId] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, [todos]);
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -119,17 +129,29 @@ export default function CategoriesPage() {
           <>
             <Table
               caption="Listado de categorías"
-              headers={["Categoría", "Color", "_Acciones"]}
+              headers={["Categoría", "Tareas", "_Acciones"]}
             >
               {visible.map((category) => (
                 <Row key={category.id}>
                   <Cell>
-                    <Badge color={category.color}>{category.name}</Badge>
+                    <div className="flex items-center gap-3">
+                      <ColorSwatch color={category.color} name={category.name} />
+                      <span className="font-medium text-gray-900">
+                        {category.name}
+                      </span>
+                    </div>
                   </Cell>
                   <Cell>
-                    <span className="font-mono text-xs text-gray-500">
-                      {category.color ?? "—"}
-                    </span>
+                    {todoCountByCategory[category.id] ? (
+                      <Badge tone="info">
+                        {todoCountByCategory[category.id]}{" "}
+                        {todoCountByCategory[category.id] === 1
+                          ? "tarea"
+                          : "tareas"}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-gray-400">Sin uso</span>
+                    )}
                   </Cell>
                   <Cell align="right">
                     <div className="flex justify-end gap-1">
@@ -171,7 +193,13 @@ export default function CategoriesPage() {
         open={Boolean(deleting)}
         title="Eliminar categoría"
         message={`¿Seguro que querés eliminar "${deleting?.name}"?`}
-        note="Las tareas que la usen no se borran: simplemente quedan sin categoría."
+        note={
+          deleting && todoCountByCategory[deleting.id]
+            ? `${todoCountByCategory[deleting.id]} ${
+                todoCountByCategory[deleting.id] === 1 ? "tarea" : "tareas"
+              } quedarán sin categoría. No se borran.`
+            : "Ninguna tarea está usando esta categoría."
+        }
         loading={removing}
         onConfirm={handleDelete}
         onCancel={() => setDeleting(null)}
