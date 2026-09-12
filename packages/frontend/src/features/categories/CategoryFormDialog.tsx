@@ -79,6 +79,7 @@ export default function CategoryFormDialog({
             form="category-form"
             loading={saving}
             icon="check"
+            disabled={!name.trim()}
           >
             {category ? "Guardar cambios" : "Crear categoría"}
           </Button>

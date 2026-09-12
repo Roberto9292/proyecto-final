@@ -105,6 +105,7 @@ export default function TodoFormDialog({
             form="todo-form"
             loading={saving}
             icon="check"
+            disabled={!title.trim()}
           >
             {todo ? "Guardar cambios" : "Crear tarea"}
           </Button>
@@ -148,7 +149,7 @@ export default function TodoFormDialog({
         <Field
           label="Descripción"
           error={errors.description}
-          hint={`Opcional · ${description.length}/${MAX_DESCRIPTION} caracteres`}
+          hint={`${description.length}/${MAX_DESCRIPTION} caracteres`}
         >
           {({ id, describedBy }) => (
             <Textarea
@@ -167,7 +168,7 @@ export default function TodoFormDialog({
         </Field>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Fecha límite" error={errors.dueDate} hint="Opcional.">
+          <Field label="Fecha límite" error={errors.dueDate}>
             {({ id, describedBy }) => (
               <Input
                 id={id}
@@ -183,7 +184,7 @@ export default function TodoFormDialog({
             )}
           </Field>
 
-          <Field label="Categoría" error={errors.categoryId} hint="Opcional.">
+          <Field label="Categoría" error={errors.categoryId}>
             {({ id, describedBy }) => (
               <Select
                 id={id}

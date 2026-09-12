@@ -62,7 +62,13 @@ export default function UserFormDialog({
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button type="submit" form="user-form" loading={saving} icon="check">
+          <Button
+            type="submit"
+            form="user-form"
+            loading={saving}
+            icon="check"
+            disabled={!email.trim() || !name.trim() || !password}
+          >
             Crear usuario
           </Button>
         </>
