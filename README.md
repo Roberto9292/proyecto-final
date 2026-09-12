@@ -2,6 +2,19 @@
 
 Proyecto de tareas construido como monorepo con **pnpm workspaces**.
 
+## Entrega — Proyecto Final
+
+| | |
+|---|---|
+| Repositorio | https://github.com/Roberto9292/proyecto-final |
+| Pull Request | https://github.com/Roberto9292/proyecto-final/pull/1 |
+| Rama | `feature/final-project-categories` |
+| Autor | Roberto Ugarte |
+
+El trabajo del proyecto final está en la rama `feature/final-project-categories`.
+`main` conserva la base del repositorio original, de modo que el Pull Request
+muestra únicamente los cambios agregados.
+
 ## Estructura
 
 ```
