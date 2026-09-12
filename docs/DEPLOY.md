@@ -597,10 +597,15 @@ cp .env.sample .env
 
 | Variable | Para qué | Valor en producción |
 |----------|----------|---------------------|
+| `NODE_ENV` | Entorno de ejecución | `production` |
+| `POSTGRES_USER` | Usuario de PostgreSQL | Uno propio, no `postgres` |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | Una contraseña propia |
+| `POSTGRES_DB` | Nombre de la base | `todo` |
+| `MONGO_DB` | Base de notificaciones | `notifications` |
 | `JWT_SECRET` | Firma los tokens | `openssl rand -hex 32` |
-| `EC2_IP` | Adónde apunta el frontend compilado | IP pública o dominio |
+| `JWT_EXPIRES_IN` | Vigencia del token | `1h` |
+| `PUBLIC_HOST` | Adónde apunta el frontend compilado | IP pública o dominio |
 | `CORS_ORIGIN` | Origen que el backend acepta | La URL del **frontend**, no la del backend |
-| `POSTGRES_PASSWORD` | Contraseña de la base | Una contraseña propia |
 
 Dos detalles que suelen costar una tarde de depuración:
 
@@ -611,7 +616,7 @@ Dos detalles que suelen costar una tarde de depuración:
   navegador bloquea todas las llamadas y la aplicación parece rota sin que el
   backend registre ningún error.
 
-El frontend se compila con `EC2_IP` incrustado, así que **si esa IP cambia hay
+El frontend se compila con `PUBLIC_HOST` incrustado, así que **si esa IP cambia hay
 que reconstruir la imagen**, no alcanza con reiniciar el contenedor.
 
 ### Secretos del repositorio en GitHub
@@ -628,7 +633,7 @@ El job `deploy` del CI necesita dos secretos en
 
 ## Checklist antes de pruebas
 
-- [ ] `.env` creado a partir de `.env.sample`, con las 4 variables completas
+- [ ] `.env` creado a partir de `.env.sample`, con las 9 variables completas
 - [ ] `JWT_SECRET` — generado con `openssl rand -hex 32`
 - [ ] `CORS_ORIGIN` — apunta al frontend, no al backend
 - [ ] `DATABASE_URL` — apunta al contenedor postgres, no a localhost
