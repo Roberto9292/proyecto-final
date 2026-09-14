@@ -25,6 +25,13 @@ export default tseslint.config(
     },
   },
   {
+    // Jest mocks are asserted unbound on purpose: expect(repository.findAll)
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+    },
+  },
+  {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',

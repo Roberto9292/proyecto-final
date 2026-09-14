@@ -1,299 +1,394 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { api } from "../lib/api";
+import { useMemo, useState } from "react";
+import { useTodos } from "../hooks/useTodos";
+import { useCategories } from "../hooks/useCategories";
 import { showToast } from "../components/Toast";
+import TodoFormDialog from "../features/todos/TodoFormDialog";
+import type { Todo, TodoInput } from "../hooks/useTodos";
+import PageHeader from "../components/ui/PageHeader";
+import Toolbar from "../components/ui/Toolbar";
+import SearchInput from "../components/ui/SearchInput";
+import Select from "../components/ui/Select";
+import Button from "../components/ui/Button";
+import IconButton from "../components/ui/IconButton";
+import Card from "../components/ui/Card";
+import Badge from "../components/ui/Badge";
+import StatusPill from "../components/ui/StatusPill";
+import InlineEdit from "../components/ui/InlineEdit";
+import Spinner from "../components/ui/Spinner";
+import EmptyState from "../components/ui/EmptyState";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
+import StatCard from "../components/ui/StatCard";
+import { Table, Row, Cell, TableFooter } from "../components/ui/Table";
 
-interface Todo {
-  id: string;
-  title: string;
-  description: string | null;
-  completed: boolean;
-  dueDate: string | null;
-}
+type StatusFilter = "all" | "pending" | "done";
+
+// dueDate es un día del calendario y se guarda como medianoche UTC, así que se
+// lee en UTC: convertirlo a la zona local lo corre un día hacia atrás.
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
+const hoy = () => {
+  const now = new Date();
+  const mes = String(now.getMonth() + 1).padStart(2, "0");
+  const dia = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${mes}-${dia}`;
+};
+
+const isOverdue = (todo: Todo) =>
+  Boolean(todo.dueDate) && !todo.completed && todo.dueDate!.slice(0, 10) < hoy();
 
 export default function TodosPage() {
-  const { token } = useAuth();
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editDueDate, setEditDueDate] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { todos, loading, reload, create, update, remove } = useTodos();
+  const { categories } = useCategories();
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [editing, setEditing] = useState<Todo | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [deleting, setDeleting] = useState<Todo | null>(null);
+  const [removing, setRemoving] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await api<Todo[]>("/api/todo", { token });
-      setTodos(data);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al cargar", "error");
-    } finally {
-      setLoading(false);
+  const categoryOf = (id: string | null) =>
+    categories.find((category) => category.id === id);
+
+  const visible = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return todos.filter((todo) => {
+      if (categoryFilter && todo.categoryId !== categoryFilter) return false;
+      if (statusFilter === "pending" && todo.completed) return false;
+      if (statusFilter === "done" && !todo.completed) return false;
+      if (term && !todo.title.toLowerCase().includes(term)) return false;
+      return true;
+    });
+  }, [todos, search, categoryFilter, statusFilter]);
+
+  const stats = useMemo(
+    () => ({
+      total: todos.length,
+      done: todos.filter((t) => t.completed).length,
+      pending: todos.filter((t) => !t.completed).length,
+      overdue: todos.filter(isOverdue).length,
+    }),
+    [todos],
+  );
+
+  const hasFilters = Boolean(search || categoryFilter || statusFilter !== "all");
+
+  const clearFilters = () => {
+    setSearch("");
+    setCategoryFilter("");
+    setStatusFilter("all");
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+
+  const openEdit = (todo: Todo) => {
+    setEditing(todo);
+    setFormOpen(true);
+  };
+
+  const handleSubmit = async (input: TodoInput) => {
+    if (editing) {
+      await update(editing.id, input);
+      showToast("Tarea actualizada", "success");
+    } else {
+      await create(input);
+      showToast("Tarea creada", "success");
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setSubmitting(true);
+  const handleRename = async (todo: Todo, title: string) => {
     try {
-      await api("/api/todo", {
-        method: "POST",
-        body: {
-          title: title.trim(),
-          description: description.trim() || undefined,
-          dueDate: dueDate || undefined,
-        },
-        token,
-      });
-      setTitle("");
-      setDescription("");
-      setDueDate("");
-      showToast("Tarea creada", "success");
-      load();
+      await update(todo.id, { title });
+      showToast("Tarea actualizada", "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al crear", "error");
-    } finally {
-      setSubmitting(false);
+      showToast(
+        err instanceof Error ? err.message : "Error al renombrar",
+        "error",
+      );
+      throw err;
     }
   };
 
   const handleToggle = async (todo: Todo) => {
+    const completed = !todo.completed;
     try {
-      await api(`/api/todo/${todo.id}`, {
-        method: "PATCH",
-        body: { completed: !todo.completed },
-        token,
-      });
-      load();
+      await update(todo.id, { completed });
+      showToast(
+        completed ? "Tarea completada" : "Tarea marcada como pendiente",
+        "success",
+      );
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al actualizar", "error");
+      showToast(
+        err instanceof Error ? err.message : "Error al actualizar",
+        "error",
+      );
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setRemoving(true);
     try {
-      await api(`/api/todo/${id}`, { method: "DELETE", token });
+      await remove(deleting.id);
       showToast("Tarea eliminada", "success");
-      load();
+      setDeleting(null);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al eliminar", "error");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar",
+        "error",
+      );
+    } finally {
+      setRemoving(false);
     }
   };
-
-  const startEdit = (todo: Todo) => {
-    setEditingId(todo.id);
-    setEditTitle(todo.title);
-    setEditDescription(todo.description ?? "");
-    setEditDueDate(todo.dueDate ? todo.dueDate.split("T")[0] : "");
-  };
-
-  const handleSave = async () => {
-    if (!editingId || !editTitle.trim()) return;
-    try {
-      await api(`/api/todo/${editingId}`, {
-        method: "PATCH",
-        body: {
-          title: editTitle.trim(),
-          description: editDescription.trim() || undefined,
-          dueDate: editDueDate || null,
-        },
-        token,
-      });
-      setEditingId(null);
-      load();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al guardar", "error");
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
-  };
-
-  const completed = todos.filter((t) => t.completed).length;
-  const total = todos.length;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Tareas</h1>
-          <p className="text-sm text-gray-500">
-            {completed} de {total} completadas
-          </p>
-        </div>
+    <>
+      <PageHeader
+        title="Tareas"
+        subtitle="Gestioná tus tareas y asignales una categoría."
+        actions={
+          <Button icon="plus" onClick={openCreate}>
+            Nueva tarea
+          </Button>
+        }
+      />
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Tareas totales" value={stats.total} icon="tasks" />
+        <StatCard
+          label="Completadas"
+          value={stats.done}
+          icon="check"
+          tone="green"
+        />
+        <StatCard
+          label="Pendientes"
+          value={stats.pending}
+          icon="clipboard"
+          tone="purple"
+        />
+        <StatCard
+          label="Vencidas"
+          value={stats.overdue}
+          icon="warning"
+          tone="amber"
+        />
       </div>
 
-      <form onSubmit={handleCreate} className="mb-6 flex gap-3 items-end">
-        <div className="flex-1 flex flex-col gap-1">
-          <input
-            type="text"
-            placeholder="Nueva tarea..."
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="w-48 flex flex-col gap-1">
-          <input
-            type="text"
-            placeholder="Descripción"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="w-40 flex flex-col gap-1">
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting || !title.trim()}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      <Toolbar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por título..."
+        />
+
+        <Select
+          aria-label="Filtrar por categoría"
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="w-auto min-w-[170px]"
         >
-          Agregar
-        </button>
-      </form>
-
-      {loading ? (
-        <p className="text-sm text-gray-500">Cargando...</p>
-      ) : todos.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-12">
-          No hay tareas aún
-        </p>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
-          {todos.map((todo) => (
-            <div
-              key={todo.id}
-              className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50"
-            >
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => handleToggle(todo)}
-                className="h-4 w-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-
-              {editingId === todo.id ? (
-                <div className="flex-1 flex flex-col gap-2">
-                  <input
-                    autoFocus
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSave();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    className="w-full px-2 py-1 border border-blue-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    placeholder="Descripción (opcional)"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSave();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    className="w-full px-2 py-1 border border-blue-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="date"
-                    value={editDueDate}
-                    onChange={(e) => setEditDueDate(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSave();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    className="w-full px-2 py-1 border border-blue-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSave}
-                      className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                    >
-                      Guardar
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="px-2 py-0.5 text-gray-400 text-xs hover:text-gray-600 transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  onDoubleClick={() => startEdit(todo)}
-                  className="flex-1 cursor-pointer group"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-sm ${
-                        todo.completed
-                          ? "text-gray-400 line-through"
-                          : "text-gray-900"
-                      }`}
-                    >
-                      {todo.title}
-                    </span>
-                    <svg
-                      className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                    </svg>
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    {todo.description && (
-                      <p className="text-xs text-gray-400">
-                        {todo.description}
-                      </p>
-                    )}
-                    {todo.dueDate && (
-                      <span
-                        className={`text-xs px-1.5 py-0.5 rounded ${
-                          !todo.completed && new Date(todo.dueDate) < new Date()
-                            ? "bg-red-100 text-red-600"
-                            : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {formatDate(todo.dueDate)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={() => handleDelete(todo.id)}
-                className="text-gray-300 hover:text-red-500 transition-colors text-sm shrink-0"
-              >
-                Eliminar
-              </button>
-            </div>
+          <option value="">Todas las categorías</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
           ))}
-        </div>
-      )}
-    </div>
+        </Select>
+
+        <Select
+          aria-label="Filtrar por estado"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+          className="w-auto min-w-[140px]"
+        >
+          <option value="all">Todos los estados</option>
+          <option value="pending">Pendientes</option>
+          <option value="done">Completadas</option>
+        </Select>
+
+        {hasFilters && (
+          <Button variant="ghost" size="sm" icon="close" onClick={clearFilters}>
+            Limpiar
+          </Button>
+        )}
+
+        <IconButton
+          icon="refresh"
+          label="Actualizar"
+          onClick={reload}
+          disabled={loading}
+          className="ml-auto"
+        />
+      </Toolbar>
+
+      <Card>
+        {loading ? (
+          <Spinner label="Cargando tareas..." />
+        ) : visible.length === 0 ? (
+          <EmptyState
+            icon="tasks"
+            title={hasFilters ? "Sin resultados" : "Todavía no tenés tareas"}
+            message={
+              hasFilters
+                ? "Probá ajustando los filtros de búsqueda."
+                : "Creá tu primera tarea para empezar a organizarte."
+            }
+            action={
+              hasFilters ? (
+                <Button variant="secondary" onClick={clearFilters}>
+                  Limpiar filtros
+                </Button>
+              ) : (
+                <Button icon="plus" onClick={openCreate}>
+                  Crear tarea
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <>
+            <Table
+              caption="Listado de tareas"
+              headers={["Tarea", "Estado", "Categoría", "Vence", "_Acciones"]}
+            >
+              {visible.map((todo) => {
+                const category = categoryOf(todo.categoryId);
+                const overdue = isOverdue(todo);
+
+                return (
+                  <Row key={todo.id}>
+                    <Cell>
+                      <div className="min-w-0">
+                        <InlineEdit
+                          value={todo.title}
+                          label={`el título de ${todo.title}`}
+                          className={`font-medium ${
+                            todo.completed
+                              ? "text-gray-400 line-through"
+                              : "text-gray-900"
+                          }`}
+                          onSave={(title) => handleRename(todo, title)}
+                        />
+                        {todo.description && (
+                          <p className="mt-0.5 max-w-md truncate text-xs text-gray-500">
+                            {todo.description}
+                          </p>
+                        )}
+                      </div>
+                    </Cell>
+
+                    <Cell>
+                      <StatusPill
+                        tone={todo.completed ? "success" : "neutral"}
+                        icon={todo.completed ? "checkCircle" : "circle"}
+                        label={todo.completed ? "Completada" : "Pendiente"}
+                        pressed={todo.completed}
+                        actionLabel={
+                          todo.completed
+                            ? `Marcar "${todo.title}" como pendiente`
+                            : `Marcar "${todo.title}" como completada`
+                        }
+                        onToggle={() => handleToggle(todo)}
+                      />
+                    </Cell>
+
+                    <Cell>
+                      {category ? (
+                        <Badge color={category.color}>{category.name}</Badge>
+                      ) : (
+                        <span className="text-xs text-gray-400">
+                          Sin categoría
+                        </span>
+                      )}
+                    </Cell>
+
+                    <Cell>
+                      {todo.dueDate ? (
+                        <Badge tone={overdue ? "danger" : "neutral"}>
+                          {formatDate(todo.dueDate)}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </Cell>
+
+                    <Cell align="right">
+                      <div className="flex justify-end gap-1">
+                        <IconButton
+                          icon="edit"
+                          label={`Editar ${todo.title}`}
+                          onClick={() => openEdit(todo)}
+                        />
+                        <IconButton
+                          icon="trash"
+                          tone="danger"
+                          label={`Eliminar ${todo.title}`}
+                          onClick={() => setDeleting(todo)}
+                        />
+                      </div>
+                    </Cell>
+                  </Row>
+                );
+              })}
+            </Table>
+
+            <TableFooter>
+              <span className="text-sm text-gray-500">
+                Mostrando <strong>{visible.length}</strong> de{" "}
+                <strong>{todos.length}</strong>{" "}
+                {todos.length === 1 ? "tarea" : "tareas"}
+              </span>
+            </TableFooter>
+          </>
+        )}
+      </Card>
+
+      <TodoFormDialog
+        open={formOpen}
+        todo={editing}
+        categories={categories}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleSubmit}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Eliminar tarea"
+        question="¿Estás seguro que deseas eliminar esta tarea?"
+        target={deleting?.title ?? ""}
+        targetMeta={
+          deleting && (
+            <>
+              <StatusPill
+                tone={deleting.completed ? "success" : "neutral"}
+                icon={deleting.completed ? "checkCircle" : "circle"}
+                label={deleting.completed ? "Completada" : "Pendiente"}
+              />
+              {categoryOf(deleting.categoryId) && (
+                <Badge color={categoryOf(deleting.categoryId)!.color}>
+                  {categoryOf(deleting.categoryId)!.name}
+                </Badge>
+              )}
+              {deleting.dueDate && <span>Vence {formatDate(deleting.dueDate)}</span>}
+            </>
+          )
+        }
+        consequence="Esta acción no se puede deshacer."
+        loading={removing}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleting(null)}
+      />
+    </>
   );
 }

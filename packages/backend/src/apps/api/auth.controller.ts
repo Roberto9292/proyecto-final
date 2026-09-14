@@ -1,9 +1,10 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthService } from 'src/contexts/identity-access/auth/application/auth.service';
 import { LoginDto } from 'src/contexts/identity-access/auth/application/dto/login.dto';
@@ -14,6 +15,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Iniciar sesión y obtener un token JWT' })
   @ApiOkResponse({
     description: 'Sesión iniciada correctamente',
@@ -32,7 +34,8 @@ export class AuthController {
       },
     },
   })
-  @ApiBadRequestResponse({ description: 'Credenciales inválidas' })
+  @ApiBadRequestResponse({ description: 'Datos inválidos' })
+  @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }

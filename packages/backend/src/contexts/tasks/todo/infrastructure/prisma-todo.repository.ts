@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Todo as TodoRow } from 'generated/prisma/client';
 import { PrismaService } from 'src/shared/infrastructure/prisma/prisma.service';
 import { Todo } from '../domain/todo.entity';
 import {
@@ -11,7 +12,7 @@ import {
 export class PrismaTodoRepository implements TodoRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  private toDomain(row: any) {
+  private toDomain(row: TodoRow) {
     return new Todo(
       row.id,
       row.title,
@@ -19,16 +20,17 @@ export class PrismaTodoRepository implements TodoRepository {
       row.completed,
       row.userId,
       row.dueDate,
+      row.categoryId,
     );
   }
 
-  async findAll() {
-    const rows = await this.prisma.todo.findMany();
+  async findAll(userId: string) {
+    const rows = await this.prisma.todo.findMany({ where: { userId } });
     return rows.map((r) => this.toDomain(r));
   }
 
-  async getOne(id: string) {
-    const row = await this.prisma.todo.findUnique({ where: { id } });
+  async getOne(id: string, userId: string) {
+    const row = await this.prisma.todo.findFirst({ where: { id, userId } });
     return row ? this.toDomain(row) : null;
   }
 

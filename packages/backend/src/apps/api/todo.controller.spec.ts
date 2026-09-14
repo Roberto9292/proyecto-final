@@ -1,11 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TodoController } from './todo.controller';
 import { TodoService } from '../../contexts/tasks/todo/application/todo.service';
+import { AuthenticatedUser } from '../../contexts/identity-access/auth/domain/authenticated-user';
 import { JwtAuthGuard } from '../../contexts/identity-access/auth/infrastructure/jwt-auth.guard';
 
 describe('TodoController', () => {
   let controller: TodoController;
   let service: jest.Mocked<TodoService>;
+
+  const currentUser: AuthenticatedUser = {
+    id: 'user-1',
+    email: 'juan@test.com',
+    role: 'CLIENT',
+  };
 
   const mockTodo = {
     id: '1',
@@ -13,6 +20,8 @@ describe('TodoController', () => {
     description: 'Test description',
     completed: false,
     userId: 'user-1',
+    dueDate: null,
+    categoryId: null,
   };
 
   beforeEach(async () => {
@@ -44,12 +53,12 @@ describe('TodoController', () => {
   });
 
   describe('findAll', () => {
-    it('returns all todos', async () => {
+    it('returns the todos of the authenticated user', async () => {
       service.findAll.mockResolvedValue([mockTodo]);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(currentUser);
       expect(result).toEqual([mockTodo]);
-      expect(service.findAll).toHaveBeenCalled();
+      expect(service.findAll).toHaveBeenCalledWith('user-1');
     });
   });
 
@@ -57,9 +66,9 @@ describe('TodoController', () => {
     it('returns a todo by id', async () => {
       service.getOne.mockResolvedValue(mockTodo);
 
-      const result = await controller.findOne('1');
+      const result = await controller.findOne(currentUser, '1');
       expect(result).toEqual(mockTodo);
-      expect(service.getOne).toHaveBeenCalledWith('1');
+      expect(service.getOne).toHaveBeenCalledWith('1', 'user-1');
     });
   });
 
@@ -67,10 +76,10 @@ describe('TodoController', () => {
     it('creates a todo for the authenticated user', async () => {
       service.create.mockResolvedValue(mockTodo);
 
-      const result = await controller.create(
-        { id: 'user-1' },
-        { title: 'Test todo', description: 'Test description' },
-      );
+      const result = await controller.create(currentUser, {
+        title: 'Test todo',
+        description: 'Test description',
+      });
       expect(result).toEqual(mockTodo);
       expect(service.create).toHaveBeenCalledWith('user-1', {
         title: 'Test todo',
@@ -84,18 +93,22 @@ describe('TodoController', () => {
       const updated = { ...mockTodo, completed: true };
       service.update.mockResolvedValue(updated);
 
-      const result = await controller.update('1', { completed: true });
+      const result = await controller.update(currentUser, '1', {
+        completed: true,
+      });
       expect(result).toEqual(updated);
-      expect(service.update).toHaveBeenCalledWith('1', { completed: true });
+      expect(service.update).toHaveBeenCalledWith('1', 'user-1', {
+        completed: true,
+      });
     });
   });
 
   describe('delete', () => {
     it('deletes a todo', async () => {
-      service.deleteItem.mockResolvedValue(undefined as any);
+      service.deleteItem.mockResolvedValue(undefined);
 
-      await controller.delete('1');
-      expect(service.deleteItem).toHaveBeenCalledWith('1');
+      await controller.delete(currentUser, '1');
+      expect(service.deleteItem).toHaveBeenCalledWith('1', 'user-1');
     });
   });
 });

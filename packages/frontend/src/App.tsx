@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router";
 import { useAuth } from "./hooks/useAuth";
 import LoginPage from "./pages/LoginPage";
 import UsersPage from "./pages/UsersPage";
+import CategoriesPage from "./pages/CategoriesPage";
 import TodosPage from "./pages/TodosPage";
 import Layout from "./components/Layout";
 
@@ -28,6 +29,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <TodosPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/categories"
+        element={
+          <ProtectedRoute>
+            <CategoriesPage />
           </ProtectedRoute>
         }
       />

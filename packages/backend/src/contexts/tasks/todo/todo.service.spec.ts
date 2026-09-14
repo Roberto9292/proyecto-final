@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
+import { NotificationPort } from 'src/shared/domain/notification.port';
+import { CategoryService } from '../category/application/category.service';
 import { TodoService } from './application/todo.service';
 import { TodoRepository } from './domain/todo.repository';
-import { NotificationPort } from './domain/notification.port';
-import { NotFoundException } from '@nestjs/common';
 
 describe('TodoService', () => {
   let service: TodoService;
   let repository: jest.Mocked<TodoRepository>;
+  let categoryService: jest.Mocked<CategoryService>;
   let notificationPort: jest.Mocked<NotificationPort>;
 
   const mockTodo = {
@@ -16,6 +18,7 @@ describe('TodoService', () => {
     completed: false,
     userId: 'user-1',
     dueDate: null,
+    categoryId: null,
   };
 
   beforeEach(async () => {
@@ -33,6 +36,12 @@ describe('TodoService', () => {
           },
         },
         {
+          provide: CategoryService,
+          useValue: {
+            getOne: jest.fn(),
+          },
+        },
+        {
           provide: NotificationPort,
           useValue: {
             send: jest.fn().mockResolvedValue(undefined),
@@ -43,6 +52,7 @@ describe('TodoService', () => {
 
     service = module.get<TodoService>(TodoService);
     repository = module.get(TodoRepository);
+    categoryService = module.get(CategoryService);
     notificationPort = module.get(NotificationPort);
   });
 
@@ -51,12 +61,12 @@ describe('TodoService', () => {
   });
 
   describe('findAll', () => {
-    it('returns all todos', async () => {
+    it('returns only the todos of the authenticated user', async () => {
       repository.findAll.mockResolvedValue([mockTodo]);
 
-      const result = await service.findAll();
+      const result = await service.findAll('user-1');
       expect(result).toEqual([mockTodo]);
-      expect(repository.findAll).toHaveBeenCalled();
+      expect(repository.findAll).toHaveBeenCalledWith('user-1');
     });
   });
 
@@ -64,15 +74,17 @@ describe('TodoService', () => {
     it('returns a todo by id', async () => {
       repository.getOne.mockResolvedValue(mockTodo);
 
-      const result = await service.getOne('1');
+      const result = await service.getOne('1', 'user-1');
       expect(result).toEqual(mockTodo);
-      expect(repository.getOne).toHaveBeenCalledWith('1');
+      expect(repository.getOne).toHaveBeenCalledWith('1', 'user-1');
     });
 
-    it('throws NotFoundException when todo not found', async () => {
+    it('throws NotFoundException when the todo belongs to another user', async () => {
       repository.getOne.mockResolvedValue(null);
 
-      await expect(service.getOne('999')).rejects.toThrow(NotFoundException);
+      await expect(service.getOne('1', 'user-2')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -91,6 +103,7 @@ describe('TodoService', () => {
         completed: false,
         userId: 'user-1',
         dueDate: null,
+        categoryId: null,
       });
       expect(notificationPort.send).toHaveBeenCalledWith({
         userId: 'user-1',
@@ -100,6 +113,49 @@ describe('TodoService', () => {
         metadata: { taskId: '1' },
       });
     });
+
+    it('rejects a category that does not belong to the user', async () => {
+      categoryService.getOne.mockRejectedValue(new NotFoundException());
+
+      await expect(
+        service.create('user-1', { title: 'Test todo', categoryId: 'cat-1' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it('turns the optional fields into null when they are missing', async () => {
+      repository.create.mockResolvedValue(mockTodo);
+
+      await service.create('user-1', { title: 'Solo el titulo' });
+
+      expect(repository.create).toHaveBeenCalledWith({
+        title: 'Solo el titulo',
+        description: null,
+        completed: false,
+        userId: 'user-1',
+        dueDate: null,
+        categoryId: null,
+      });
+    });
+
+    it('parses the due date and keeps the category when both are given', async () => {
+      repository.create.mockResolvedValue(mockTodo);
+      categoryService.getOne.mockResolvedValue(undefined as never);
+
+      await service.create('user-1', {
+        title: 'Con fecha',
+        dueDate: '2026-09-15T10:00:00.000Z',
+        categoryId: 'cat-1',
+      });
+
+      expect(categoryService.getOne).toHaveBeenCalledWith('cat-1', 'user-1');
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dueDate: new Date('2026-09-15T10:00:00.000Z'),
+          categoryId: 'cat-1',
+        }),
+      );
+    });
   });
 
   describe('update', () => {
@@ -108,7 +164,7 @@ describe('TodoService', () => {
       repository.getOne.mockResolvedValue(mockTodo);
       repository.update.mockResolvedValue(updated);
 
-      const result = await service.update('1', { completed: true });
+      const result = await service.update('1', 'user-1', { completed: true });
       expect(result).toEqual(updated);
       expect(notificationPort.send).toHaveBeenCalledWith({
         userId: 'user-1',
@@ -123,15 +179,49 @@ describe('TodoService', () => {
       repository.getOne.mockResolvedValue(mockTodo);
       repository.update.mockResolvedValue(mockTodo);
 
-      await service.update('1', { title: 'New title' });
+      await service.update('1', 'user-1', { title: 'New title' });
       expect(notificationPort.send).not.toHaveBeenCalled();
+    });
+
+    it('leaves the due date untouched when the payload does not mention it', async () => {
+      repository.getOne.mockResolvedValue(mockTodo);
+      repository.update.mockResolvedValue(mockTodo);
+
+      await service.update('1', 'user-1', { title: 'New title' });
+
+      expect(repository.update).toHaveBeenCalledWith('1', {
+        title: 'New title',
+        dueDate: undefined,
+      });
+    });
+
+    it('parses the due date when one is given', async () => {
+      repository.getOne.mockResolvedValue(mockTodo);
+      repository.update.mockResolvedValue(mockTodo);
+
+      await service.update('1', 'user-1', {
+        dueDate: '2026-09-15T10:00:00.000Z',
+      });
+
+      expect(repository.update).toHaveBeenCalledWith('1', {
+        dueDate: new Date('2026-09-15T10:00:00.000Z'),
+      });
+    });
+
+    it('clears the due date when it is sent as null', async () => {
+      repository.getOne.mockResolvedValue(mockTodo);
+      repository.update.mockResolvedValue({ ...mockTodo, dueDate: null });
+
+      await service.update('1', 'user-1', { dueDate: null });
+
+      expect(repository.update).toHaveBeenCalledWith('1', { dueDate: null });
     });
 
     it('throws NotFoundException when todo not found', async () => {
       repository.getOne.mockResolvedValue(null);
 
       await expect(
-        service.update('999', { completed: true }),
+        service.update('999', 'user-1', { completed: true }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -141,16 +231,17 @@ describe('TodoService', () => {
       repository.getOne.mockResolvedValue(mockTodo);
       repository.deleteItem.mockResolvedValue(undefined);
 
-      await service.deleteItem('1');
+      await service.deleteItem('1', 'user-1');
       expect(repository.deleteItem).toHaveBeenCalledWith('1');
     });
 
     it('throws NotFoundException when todo not found', async () => {
       repository.getOne.mockResolvedValue(null);
 
-      await expect(service.deleteItem('999')).rejects.toThrow(
+      await expect(service.deleteItem('999', 'user-1')).rejects.toThrow(
         NotFoundException,
       );
+      expect(repository.deleteItem).not.toHaveBeenCalled();
     });
   });
 });

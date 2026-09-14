@@ -60,13 +60,13 @@ docker compose down -v
 ### Qué hace cada servicio en el compose
 
 **postgres** — PostgreSQL 16 con volumen persistente:
-- Puerto 5432 expuesto
+- Puerto 5432 publicado solo en `127.0.0.1`, no en la red pública
 - Crea la DB `todo` automáticamente
 - Healthcheck con `pg_isready`
 - No necesita migraciones manuales — Prisma las aplica al iniciar el backend
 
 **mongodb** — MongoDB 8 con volumen persistente:
-- Puerto 27017 expuesto
+- Puerto 27017 publicado solo en `127.0.0.1`, no en la red pública
 - Crea la DB `notifications` al primer insert (schema-less)
 - Healthcheck con `mongosh`
 
@@ -380,7 +380,7 @@ async function main() {
   console.log('Migrations applied!');
   
   const argon2 = require('/app/node_modules/.pnpm/argon2@0.45.1/node_modules/argon2');
-  const email = 'admin@todo.com';
+  const email = 'admin@gmail.com';
   const password = 'admin123';
   
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -404,7 +404,7 @@ docker compose exec backend node packages/backend/migrate-and-seed.js
 ```
 
 Credenciales del admin:
-- Email: `admin@todo.com`
+- Email: `admin@gmail.com`
 - Password: `admin123`
 
 ### Paso 8: Configurar subdominios (producción)
@@ -586,13 +586,110 @@ docker compose up -d backend frontend
 
 ---
 
+## Configuración antes de desplegar
+
+Todas las variables que consume `docker-compose.yml` viven en un único archivo
+en la raíz del repositorio:
+
+```bash
+cp .env.sample .env
+```
+
+| Variable | Para qué | Valor en producción |
+|----------|----------|---------------------|
+| `NODE_ENV` | Entorno de ejecución | `production` |
+| `POSTGRES_USER` | Usuario de PostgreSQL | Uno propio, no `postgres` |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | Una contraseña propia |
+| `POSTGRES_DB` | Nombre de la base | `todo` |
+| `MONGO_DB` | Base de notificaciones | `notifications` |
+| `JWT_SECRET` | Firma los tokens | `openssl rand -hex 32` |
+| `JWT_EXPIRES_IN` | Vigencia del token | `1h` |
+| `PUBLIC_HOST` | Adónde apunta el frontend compilado | IP pública o dominio |
+| `CORS_ORIGIN` | Origen que el backend acepta | La URL del **frontend**, no la del backend |
+
+Tres de ellas no tienen valor por defecto y el compose se detiene si faltan:
+`JWT_SECRET`, `POSTGRES_USER` y `POSTGRES_PASSWORD`. Son credenciales, y
+dejarles un valor de reserva escrito en `docker-compose.yml` equivale a
+publicarlas: el archivo está en el repositorio.
+
+Dos detalles que suelen costar una tarde de depuración:
+
+- **`JWT_SECRET` no tiene valor por defecto.** Si falta, `docker compose up`
+  se detiene con un mensaje en lugar de levantar la API firmando con un
+  secreto que está escrito en el repositorio y que cualquiera puede leer.
+- **`CORS_ORIGIN` es el origen del frontend.** Si queda en `localhost`, el
+  navegador bloquea todas las llamadas y la aplicación parece rota sin que el
+  backend registre ningún error.
+
+El frontend se compila con `PUBLIC_HOST` incrustado, así que **si esa IP cambia hay
+que reconstruir la imagen**, no alcanza con reiniciar el contenedor.
+
+### Por qué las bases no publican puerto hacia afuera
+
+`ports: "5432:5432"` asocia el puerto a todas las interfaces, así que en una
+instancia con IP pública deja la base accesible desde internet. MongoDB además
+corre sin autenticación: bastaría con que alguien escanee el 27017 para leer y
+escribir la base de notificaciones.
+
+Los servicios no necesitan ese puerto: se alcanzan entre ellos por la red
+interna de compose usando el nombre del servicio (`postgres`, `mongodb`). El
+puerto queda publicado en `127.0.0.1` únicamente, de modo que sigue disponible
+para inspeccionar la base desde la propia instancia o por un túnel SSH:
+
+```bash
+ssh -L 5432:localhost:5432 ec2-user@IP_PUBLICA
+```
+
+### Cómo llegan los secretos a los contenedores
+
+Docker Compose lee el `.env` de la raíz por su cuenta y reemplaza cada
+`${VARIABLE}` del `docker-compose.yml` antes de levantar los servicios. No hace
+falta declararlo en ningún lado.
+
+Cada servicio recibe **solo las variables que necesita**, porque están
+enumeradas una por una en su bloque `environment`. Usar `env_file` en su lugar
+metería todas las variables del archivo en todos los contenedores: el servicio
+de notificaciones terminaría con `JWT_SECRET` y con la contraseña de PostgreSQL
+sin tener nada que hacer con ellas.
+
+En el servidor, el archivo se protege como cualquier credencial:
+
+```bash
+chmod 600 .env
+```
+
+Un `.dockerignore` en la raíz mantiene los `.env` fuera del contexto de
+construcción. Sin él, `COPY packages/backend/ ./packages/backend/` se llevaría
+el `.env` del servidor adentro de una capa de la imagen, de donde se puede
+recuperar con `docker history`.
+
+Para una infraestructura más grande el paso siguiente es un gestor de secretos
+—AWS Secrets Manager o SSM Parameter Store— que evita tener el archivo en disco
+y permite rotar sin volver a desplegar.
+
+### Secretos del repositorio en GitHub
+
+El job `deploy` del CI necesita dos secretos en
+*Settings → Secrets and variables → Actions*:
+
+| Secreto | Cómo obtenerlo |
+|---------|----------------|
+| `EC2_HOST` | `aws ec2 describe-instances --instance-ids i-XXXXX --query 'Reservations[0].Instances[0].PublicIpAddress' --output text` |
+| `EC2_SSH_KEY` | El contenido de la clave privada generada en la instancia |
+
+---
+
 ## Checklist antes de pruebas
 
+- [ ] `.env` creado a partir de `.env.sample`, con las 9 variables completas
 - [ ] `JWT_SECRET` — generado con `openssl rand -hex 32`
+- [ ] `CORS_ORIGIN` — apunta al frontend, no al backend
+- [ ] `POSTGRES_USER` y `POSTGRES_PASSWORD` — propios, no los del sample
+- [ ] `chmod 600 .env`
 - [ ] `DATABASE_URL` — apunta al contenedor postgres, no a localhost
 - [ ] `MONGODB_URI` — apunta al contenedor mongodb
 - [ ] Puertos abiertos en security group (80, 443, 22)
 - [ ] `docker compose ps` — todos los servicios corriendo
 - [ ] Prisma migrate ejecutado — migraciones + seed
 - [ ] nginx instalado y configurado — `curl http://IP_PUBLICA/` devuelve HTML
-- [ ] Login funciona — `curl http://IP_PUBLICA/api/auth/login -X POST -d '{"email":"admin@todo.com","password":"admin123"}'`
+- [ ] Login funciona — `curl http://IP_PUBLICA/api/auth/login -X POST -d '{"email":"admin@gmail.com","password":"admin123"}'`

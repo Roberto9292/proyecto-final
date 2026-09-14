@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationService } from './notification.service';
 import { NotificationRepository } from '../domain/notification.repository';
+import { NotificationType } from '../domain/notification.entity';
 import { NotFoundException } from '@nestjs/common';
 
 describe('NotificationService', () => {
@@ -10,7 +11,7 @@ describe('NotificationService', () => {
   const mockNotification = {
     id: 'notif-1',
     userId: 'user-1',
-    type: 'TASK_CREATED' as const,
+    type: NotificationType.TASK_CREATED,
     title: 'Nueva tarea',
     message: 'Se creó una tarea',
     metadata: { taskId: 'task-1' },
@@ -75,7 +76,7 @@ describe('NotificationService', () => {
 
       const result = await service.create({
         userId: 'user-1',
-        type: 'TASK_CREATED',
+        type: NotificationType.TASK_CREATED,
         title: 'Nueva tarea',
         message: 'Se creó una tarea',
         metadata: { taskId: 'task-1' },
@@ -84,7 +85,7 @@ describe('NotificationService', () => {
       expect(result).toEqual(mockNotification);
       expect(repository.create).toHaveBeenCalledWith({
         userId: 'user-1',
-        type: 'TASK_CREATED',
+        type: NotificationType.TASK_CREATED,
         title: 'Nueva tarea',
         message: 'Se creó una tarea',
         metadata: { taskId: 'task-1' },
@@ -96,7 +97,7 @@ describe('NotificationService', () => {
 
       await service.create({
         userId: 'user-1',
-        type: 'TASK_CREATED',
+        type: NotificationType.TASK_CREATED,
         title: 'Nueva tarea',
         message: 'Se creó una tarea',
       });

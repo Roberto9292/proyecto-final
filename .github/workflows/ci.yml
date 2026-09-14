@@ -20,9 +20,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Approve native builds
-        run: pnpm approve-builds argon2 esbuild @swc/core @parcel/watcher @prisma/engines prisma unrs-resolver 2>/dev/null || true
-
       - name: Generate Prisma client
         run: pnpm --filter todo-backend exec prisma generate
 
@@ -41,9 +38,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Approve native builds
-        run: pnpm approve-builds esbuild @swc/core 2>/dev/null || true
 
       - name: Run notification tests
         run: pnpm --filter notification-service test

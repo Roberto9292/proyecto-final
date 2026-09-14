@@ -1,0 +1,28 @@
+# Override de producción: todo entra por nginx en el puerto 80.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # mongo:8 aborta en kernels 6.19 a 7.0.13 (jira.mongodb.org/browse/SERVER-121912).
+  mongodb:
+    image: mongo:7
+
+  # !override porque Compose fusiona las listas de ports agregando: sin la
+  # etiqueta convive el binding 0.0.0.0 del compose base y choca con este.
+  backend:
+    ports: !override
+      - "127.0.0.1:3050:3050"
+
+  notification:
+    ports: !override
+      - "127.0.0.1:3060:3060"
+
+  # URLs vacías: el frontend ya antepone /api y /socket.io, así que quedan
+  # relativas al origen y no hace falta reconstruir si cambia la IP pública.
+  frontend:
+    build:
+      args:
+        VITE_API_BASE: ""
+        VITE_WS_URL: ""
+    ports: !override
+      - "127.0.0.1:3040:3040"
