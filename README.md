@@ -15,9 +15,9 @@ Proyecto de tareas construido como monorepo con **pnpm workspaces**.
 
 | | |
 |---|---|
-| Aplicación | http://54.90.184.57 |
-| Swagger | http://54.90.184.57/docs |
-| API | `http://54.90.184.57/api` |
+| Aplicación | http://54.81.193.240 |
+| Swagger | http://54.81.193.240/docs |
+| API | `http://54.81.193.240/api` |
 
 #### Usuarios de prueba
 
